@@ -335,11 +335,11 @@ static void option_instat_callback(struct urb *urb);
 #define AIRPLUS_VENDOR_ID			0x1011
 #define AIRPLUS_PRODUCT_MCD650			0x3198
 
-/* Longcheer/Longsung vendor ID; makes whitelabel devices that
+/* /Longsung vendor ID; makes whitelabel devices that
  * many other vendors like 4G Systems, Alcatel, ChinaBird,
  * Mobidata, etc sell under their own brand names.
  */
-#define LONGCHEER_VENDOR_ID			0x1c9e
+#define BQ_VENDOR_ID			0x1c9e
 
 /* 4G Systems products */
 /* This is the 4G XS Stick W14 a.k.a. Mobilcom Debitel Surf-Stick *
@@ -1583,12 +1583,12 @@ static const struct usb_device_id option_ids[] = {
 	  .driver_info = (kernel_ulong_t)&net_intf2_blacklist },
 	{ USB_DEVICE(AIRPLUS_VENDOR_ID, AIRPLUS_PRODUCT_MCD650) },
 	{ USB_DEVICE(TLAYTECH_VENDOR_ID, TLAYTECH_PRODUCT_TEU800) },
-	{ USB_DEVICE(LONGCHEER_VENDOR_ID, FOUR_G_SYSTEMS_PRODUCT_W14),
+	{ USB_DEVICE(BQ_VENDOR_ID, FOUR_G_SYSTEMS_PRODUCT_W14),
   	  .driver_info = (kernel_ulong_t)&four_g_w14_blacklist
   	},
-	{ USB_DEVICE_INTERFACE_CLASS(LONGCHEER_VENDOR_ID, SPEEDUP_PRODUCT_SU9800, 0xff) },
-	{ USB_DEVICE(LONGCHEER_VENDOR_ID, ZOOM_PRODUCT_4597) },
-	{ USB_DEVICE(LONGCHEER_VENDOR_ID, IBALL_3_5G_CONNECT) },
+	{ USB_DEVICE_INTERFACE_CLASS(BQ_VENDOR_ID, SPEEDUP_PRODUCT_SU9800, 0xff) },
+	{ USB_DEVICE(BQ_VENDOR_ID, ZOOM_PRODUCT_4597) },
+	{ USB_DEVICE(BQ_VENDOR_ID, IBALL_3_5G_CONNECT) },
 	{ USB_DEVICE(HAIER_VENDOR_ID, HAIER_PRODUCT_CE100) },
 	/* Pirelli  */
 	{ USB_DEVICE_INTERFACE_CLASS(PIRELLI_VENDOR_ID, PIRELLI_PRODUCT_C100_1, 0xff) },
