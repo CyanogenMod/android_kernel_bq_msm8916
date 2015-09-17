@@ -777,7 +777,11 @@ void pil_shutdown(struct pil_desc *desc)
 }
 EXPORT_SYMBOL(pil_shutdown);
 
-void pil_free(struct pil_desc *desc)
+/**
+ * pil_free_memory() - Free memory resources associated with a peripheral
+ * @desc: descriptor from pil_desc_init()
+ */
+void pil_free_memory(struct pil_desc *desc)
 {
 	struct pil_priv *priv = desc->priv;
 
@@ -787,7 +791,7 @@ void pil_free(struct pil_desc *desc)
 		priv->region = NULL;
 	}
 }
-EXPORT_SYMBOL(pil_free);
+EXPORT_SYMBOL(pil_free_memory);
 
 static DEFINE_IDA(pil_ida);
 

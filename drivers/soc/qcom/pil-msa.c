@@ -416,8 +416,9 @@ int pil_mss_reset_load_mba(struct pil_desc *pil)
 	}
 
 	drv->mba_size = SZ_1M;
-	if (drv->mba_region)
-		md->mba_mem_dev = *(pil->dev);
+
+	if (md->mba_mem_dev_fixed)
+		md->mba_mem_dev = *md->mba_mem_dev_fixed;
 	else
 		md->mba_mem_dev.coherent_dma_mask =
 			DMA_BIT_MASK(sizeof(dma_addr_t) * 8);
@@ -477,12 +478,12 @@ static int pil_msa_auth_modem_mdt(struct pil_desc *pil, const u8 *metadata,
 	int ret;
 	DEFINE_DMA_ATTRS(attrs);
 
-	if (drv->q6->mba_region)
-		drv->mba_mem_dev = *(pil->dev);
+	if (drv->mba_mem_dev_fixed)
+		drv->mba_mem_dev = *drv->mba_mem_dev_fixed;
 	else
 		drv->mba_mem_dev.coherent_dma_mask =
 			DMA_BIT_MASK(sizeof(dma_addr_t) * 8);
-	
+
 	dma_set_attr(DMA_ATTR_STRONGLY_ORDERED, &attrs);
 	/* Make metadata physically contiguous and 4K aligned. */
 	mdata_virt = dma_alloc_attrs(&drv->mba_mem_dev, size, &mdata_phys,
@@ -491,7 +492,6 @@ static int pil_msa_auth_modem_mdt(struct pil_desc *pil, const u8 *metadata,
 		dev_err(pil->dev, "MBA metadata buffer allocation failed\n");
 		return -ENOMEM;
 	}
-	
 	memcpy(mdata_virt, metadata, size);
 	/* wmb() ensures copy completes prior to starting authentication. */
 	wmb();

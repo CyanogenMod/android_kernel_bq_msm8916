@@ -27,7 +27,7 @@
 	qcom,msm-id = <239 0>, <241 0>, <263 0>;
 
 	chosen {
-		bootargs = "boot_cpus=0,4,5,6,7 sched_enable_hmp=1";
+		bootargs = "boot_cpus=0 androidboot.earlyboot_cpus=2,4,6 sched_enable_hmp=1";
 	};
 };
 
@@ -78,7 +78,9 @@
 			<  800000000 9>,
 			<  960000000 12>,
 			< 1113600000 14>,
-			< 1344000000 17>;
+			< 1344000000 17>,
+			< 1459200000 20>,
+			< 1497600000 21>;
 
 		qcom,speed0-bin-v0-cci =
 			<          0 0>,
