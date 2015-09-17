@@ -1,0 +1,35 @@
+config MACH_LONGCHEER
+       bool "Longcheer device"
+       depends on ARCH_MSM
+       help
+         Support for Longcheer products
+
+
+config L9100_COMMON
+    default n
+    bool " L8700 board"
+    depends on MACH_LONGCHEER
+    help
+        Support for the L9100  board.
+         
+config L9100_MRS_A01
+    default n
+    bool " L8720 board"
+    depends on MACH_LONGCHEER
+    help
+        Support for the L9100  board.
+
+config L8910_MRS_A01
+    default n
+    bool " L8910 board"
+    depends on MACH_LONGCHEER
+    help
+        Support for the L8910  board.
+
+config L8910_COMMON
+    default n
+    bool " L8910 board"
+    depends on MACH_LONGCHEER
+    help
+        Support for the L8910  board.
+

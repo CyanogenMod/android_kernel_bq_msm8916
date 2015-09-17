@@ -1444,18 +1444,6 @@ config LCT_FLORIDA_GPIO_CTRL
 		Support for Wolfson codec FLORIDA.
 
 
-
-config L9100_COMMON
-    default n
-    bool " L8700 board"
-    help
-        Support for the L9100  board.
-	  
-config L9100_MRS_A01
-    default n
-    bool " L8720 board"
-    help
-        Support for the L9100  board.
 		
 endmenu
 
@@ -1568,18 +1556,6 @@ config SMP_ON_UP
 	  savings.
 
 	  If you don't know what to do here, say Y.
-
-config L8910_MRS_A01
-    default n
-    bool " L8910 board"
-    help
-        Support for the L8910  board.
-
-config L8910_COMMON
-    default n
-    bool " L8910 board"
-    help
-        Support for the L8910  board.
 
 config SPEAKER_EXT_PA
     default n
