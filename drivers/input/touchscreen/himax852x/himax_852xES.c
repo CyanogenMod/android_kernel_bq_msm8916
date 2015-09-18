@@ -1955,6 +1955,9 @@ static int himax_parse_wake_event(struct himax_ts_data *ts)
 static void himax_ts_button_func(int tp_key_index,struct himax_ts_data *ts)
 {
 	uint16_t x_position = 0, y_position = 0;
+
+        if (!ts->buttons_enable) return;
+
 if ( tp_key_index != 0x00)
 	{
 		I("virtual key index =%x, virtual_key = 0x%p\n",tp_key_index,ts->pdata->virtual_key);
@@ -4753,6 +4756,38 @@ static DEVICE_ATTR(SMWP, (S_IWUSR|S_IRUGO|S_IWUGO),
 	himax_SMWP_show, himax_SMWP_store);
 
 #endif
+
+static ssize_t himax_buttons_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct himax_ts_data *ts = private_ts;
+	size_t count = 0;
+	count = snprintf(buf, PAGE_SIZE, "%d\n", ts->buttons_enable);
+
+	return count;
+}
+
+static ssize_t himax_buttons_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+
+	struct himax_ts_data *ts = private_ts;
+
+	if (sysfs_streq(buf, "0"))
+		ts->buttons_enable = 0;
+	else if (sysfs_streq(buf, "1"))
+		ts->buttons_enable = 1;
+	else
+		return -EINVAL;
+	
+	I("%s: capacitive buttons enable = %d.\n", __func__, ts->buttons_enable);
+
+	return count;
+}
+
+static DEVICE_ATTR(buttons, (S_IWUSR|S_IRUGO|S_IWUGO),
+	himax_buttons_show, himax_buttons_store);
+
 static int himax_touch_sysfs_init(void)
 {
 	int ret;
@@ -4871,6 +4906,13 @@ static int himax_touch_sysfs_init(void)
 			return ret;
 		}
 	#endif
+
+	ret = sysfs_create_file(android_touch_kobj, &dev_attr_buttons.attr);
+	if (ret) 
+	{
+		E("sysfs_create_file dev_attr_buttons failed\n");
+		return ret;
+	}
 	
 	return 0 ;
 }
@@ -4915,6 +4957,8 @@ static void himax_touch_sysfs_deinit(void)
 	#ifdef HX_SMART_WAKEUP
 	sysfs_remove_file(android_touch_kobj, &dev_attr_SMWP.attr);
 	#endif
+
+	sysfs_remove_file(android_touch_kobj, &dev_attr_buttons.attr);
 	
 	kobject_del(android_touch_kobj);
 }
@@ -5707,6 +5751,8 @@ HW_RESET_ACTIVATE = 0;
 #ifdef HX_DOT_VIEW
 	register_notifier_by_hallsensor(&hallsensor_status_handler);
 #endif
+
+        ts->buttons_enable = 1;
 
 	err = himax_ts_register_interrupt(ts->client);
 	if (err)

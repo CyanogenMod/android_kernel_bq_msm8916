@@ -265,6 +265,8 @@ struct himax_ts_data {
 	uint8_t usb_connected;
 	uint8_t *cable_config;
 #endif
+
+	uint8_t buttons_enable;
 };
 
 static struct himax_ts_data *private_ts;
