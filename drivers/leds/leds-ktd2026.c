@@ -34,6 +34,12 @@
 #define KTD_REG_PWM1		0x02
 #define KTD_REG_PWM2		0x03
 
+#define MS_TO_LSB      (128)
+#define MIN_DC_VALUE	4
+#define MIN_RAMP_VALUE	96
+#define RISE_TIME_MASK	0xF0
+#define FALL_TIME_MASK	0x0F
+
 #define KTD_I2C_NAME			"ktd2026"
 
 
@@ -138,15 +144,24 @@ static int ktd20xx_turn_on_led(struct ktd20xx_led *led, enum led_colors color)
 		state_led |= 0x01;
 	}
 
+	if (led->state_ledr == KTD_BLINK)
+		state_led |= 0x02;
+
 	if (KTD_ON == led->state_ledg )
 	{
 		state_led |= 0x04;
 	}
 
+	if (led->state_ledg == KTD_BLINK)
+		state_led |= 0x08;
+
 	if (KTD_ON == led->state_ledb )
 	{
 		state_led |= 0x10;
 	}
+
+	if (led->state_ledb == KTD_BLINK)
+		state_led |= 0x20;
 	
 	ret = ktd20xx_write_reg(led->client, KTD_REG_LEDE, state_led);
 
@@ -380,25 +395,38 @@ static enum led_brightness ktd20xx_get_ledb_brightness(struct led_classdev *led_
 static int ktd20xx_set_led_blink(struct ktd20xx_led *led, enum led_colors color,
 								unsigned int rising_time, unsigned int hold_time,
 								unsigned int falling_time, unsigned int off_time,
-								unsigned int delay_time, unsigned int period_num)
+								unsigned int delay_time, unsigned int period_num,
+								unsigned int brightness)
 {
 	int ret = 0;
+	u8 period = 0;
+	u8 duty_cycle = 0;
 	u8 state_led = 0x00;
-	u8 brightness = 0x00;
+	u8 rise_time, fall_time;
+	u8 ramp_times;
 
-	switch (color) {
-		case RED:
-			brightness  = led->cdev_ledr.brightness ;
-			break;
-		case GREEN:
-			brightness  = led->cdev_ledg.brightness ;
-			break;
-		case BLUE:
-			brightness  = led->cdev_ledb.brightness ;
-			break;
-		default:
-			return -1;
-	}
+	period = (hold_time + off_time)/MS_TO_LSB;
+
+	if (period < 2)
+		period = 0;
+	else
+		period = period - 2;
+
+	if (period > 127)
+		period = 127;
+
+	duty_cycle = ((hold_time * 1000) / (hold_time + off_time))/ MIN_DC_VALUE;
+
+	rise_time = (rising_time / MIN_RAMP_VALUE);
+	if (rise_time > 15)
+		rise_time = 15;
+
+	fall_time = (falling_time / MIN_RAMP_VALUE);
+	if (fall_time > 15)
+		fall_time = 15;
+
+	ramp_times = (rise_time << 4 & RISE_TIME_MASK) | (fall_time & FALL_TIME_MASK);
+
 	if(debug)
  	{
 		printk(KERN_ERR "%s  led->cdev_ledr.brightness  %d  led->cdev_ledg.brightness  %d  led->cdev_ledb.brightness %d \n", 
@@ -409,20 +437,12 @@ static int ktd20xx_set_led_blink(struct ktd20xx_led *led, enum led_colors color,
 			__func__, color, rising_time, hold_time, falling_time, off_time, delay_time, period_num);
 	}
 
-//	ret = ktd20xx_write_reg(led->client, KTD_REG_LCFG+color, (u8)(0x70 |led->pdata[color].led_current));  //mod=flash
-//	ret |= ktd20xx_write_reg(led->client, KTD_REG_PWM_LEVEL+color, 255);
-	ktd20xx_write_reg(led->client, KTD_REG_LEDE, 0x00);// initialization LED off
-	ktd20xx_write_reg(led->client, KTD_REG_RSTR, 0x20);// mode set---IC work when both SCL and SDA goes high
-//	ktd20xx_write_reg(led->client, KTD_REG_LCFG+color, brightness);
-	ktd20xx_write_reg(led->client, KTD_REG_LCFG+color, 0x77);//Set current is 15mA
+	ktd20xx_write_reg(led->client, KTD_REG_RSTR, 0x00);// mode set---IC work when both SCL and SDA goes high
+	ktd20xx_write_reg(led->client, KTD_REG_LCFG+color, brightness);
 	
-
-//	ret |= ktd20xx_write_reg(led->client, KTD_REG_R_F,  (u8)((4 << (rising_time & 0x0f) )| (falling_time & 0x0f)));
-	ret |= ktd20xx_write_reg(led->client, KTD_REG_R_F,  0x11);
-	ret |= ktd20xx_write_reg(led->client, KTD_REG_HOLD, (u8)(hold_time));
-//	ret |= ktd20xx_write_reg(led->client, KTD_REG_T2+color*3, (u8)((delay_time<<4) |period_num));
-//	ret |= ktd20xx_turn_on_led(led, color);
-	ktd20xx_write_reg(led->client, KTD_REG_PWM1, 0x56);//reset internal counter
+	ret |= ktd20xx_write_reg(led->client, KTD_REG_R_F,  ramp_times);
+	ret |= ktd20xx_write_reg(led->client, KTD_REG_HOLD, period);
+	ktd20xx_write_reg(led->client, KTD_REG_PWM1, duty_cycle);//reset internal counter
 
 	if (KTD_BLINK == led->state_ledr )
 	{
@@ -443,9 +463,9 @@ static int ktd20xx_set_led_blink(struct ktd20xx_led *led, enum led_colors color,
 		printk(KERN_ERR "%s  led->state_ledr %d led->state_ledg %d  led->state_ledb %d\n", 
 			__func__, led->state_ledr, led->state_ledg, led->state_ledb);
 	}
+
 	ktd20xx_write_reg(led->client, KTD_REG_LEDE,  state_led);//allocate led1 to timer1
 	
-	ktd20xx_write_reg(led->client, KTD_REG_PWM1, 0x56);//led flashing(curerent ramp-up and down countinuously)
 	return ret;
 }
 
@@ -575,94 +595,71 @@ static ssize_t blink_store(struct device *dev,
 {
 	struct led_classdev *led_cdev = dev_get_drvdata(dev);
 	struct ktd20xx_led *led;
-	unsigned long blinking;
-	unsigned int hold_time = 2;
-	unsigned int rise_time = 2;
-	unsigned int fall_time = 2;
-	
+	unsigned int value;
+	unsigned int ontime = 2;
+	unsigned int offtime = 2;
+	unsigned int rise_time;
+	unsigned int fall_time;
+
 	ssize_t ret = -EINVAL;
 
-	ret = kstrtoul(buf, 10, &blinking);
-	if (ret)
+	if (sscanf(buf,"%d %d %d",&value,&ontime,&offtime) < 0) {
+		dev_err(led_cdev->dev, "%s fail\n", __FUNCTION__);
 		return ret;
-	if(debug)
- 	{
-		printk(KERN_ERR "%s  led_cdev->name %s blinking %ld \n", __func__, led_cdev->name, blinking);
 	}
-	hold_time =  blinking/166;
-	if(hold_time < 2)
-		hold_time += 2;
-	rise_time = hold_time/2;
-	fall_time = hold_time/2;
-	if(debug)
- 	{
-		printk(KERN_ERR "%s  hold_time %d \n", __func__, hold_time);
-	}
+
+	if (ontime > offtime)
+		rise_time = fall_time = offtime / 2;
+	else
+		rise_time = fall_time = ontime / 2;
+
 	if(!strcmp(led_cdev->name,"red")){
 		led = container_of(led_cdev, struct ktd20xx_led, cdev_ledr);
-		if(!blinking){
+		if(!value){
 			led->state_ledr = KTD_OFF;
 			cancel_delayed_work(&led->work_ledr);
 			ktd20xx_turn_off_led(led,RED);
 		}else{
-			if(0){
-				led->state_ledr = KTD_BLINK;
-				schedule_delayed_work(&led->work_ledr, msecs_to_jiffies(10));
-			}
-			if(led->state_ledr != KTD_BLINK){
 			led->state_ledr = KTD_BLINK;
 			ret = ktd20xx_set_led_blink(led,RED,
 							rise_time,/*led->pdata[RED].rise_time,*/
-							hold_time, /*led->pdata[RED].hold_time,*/
+							ontime, /*led->pdata[RED].hold_time,*/
 							fall_time,/*led->pdata[RED].fall_time,*/
-							led->pdata[RED].off_time,
+							offtime,
 							led->pdata[RED].delay_time,
-							led->pdata[RED].period_num);
-			}
+							led->pdata[RED].period_num, value);
 		}
 	}else if(!strcmp(led_cdev->name,"green")){
 		led = container_of(led_cdev, struct ktd20xx_led, cdev_ledg);
-		if(!blinking){
+		if(!value){
 			led->state_ledg = KTD_OFF;
 			cancel_delayed_work(&led->work_ledg);
 			ktd20xx_turn_off_led(led,GREEN);
 		}else{
-			if(0){
-				led->state_ledg = KTD_BLINK;
-				schedule_delayed_work(&led->work_ledg, msecs_to_jiffies(10));
-			}
-            if(led->state_ledg != KTD_BLINK){
 			led->state_ledg = KTD_BLINK;
 			ret = ktd20xx_set_led_blink(led,GREEN,
 							rise_time, /*led->pdata[GREEN].rise_time,*/
-							hold_time, /*led->pdata[GREEN].hold_time,*/
+							ontime, /*led->pdata[GREEN].hold_time,*/
 							fall_time, /*led->pdata[GREEN].fall_time,*/
-							hold_time, /*led->pdata[GREEN].off_time,*/
+							offtime, /*led->pdata[GREEN].off_time,*/
 							led->pdata[GREEN].delay_time,
-							led->pdata[GREEN].period_num);
-			}
+							led->pdata[GREEN].period_num, value);
 		}
 	}else if(!strcmp(led_cdev->name,"blue")){
 		led = container_of(led_cdev, struct ktd20xx_led, cdev_ledb);
-		if(!blinking){
+		if(!value){
 			led->state_ledb = KTD_OFF;
 			cancel_delayed_work(&led->work_ledb);
 			ktd20xx_turn_off_led(led,GREEN);
 		}else{
-			if(0){
-				led->state_ledb = KTD_BLINK;
-				schedule_delayed_work(&led->work_ledb, msecs_to_jiffies(10));
-			}
-            if(led->state_ledb != KTD_BLINK){
 			led->state_ledb = KTD_BLINK;
 			ret = ktd20xx_set_led_blink(led,BLUE,
 							rise_time, /*led->pdata[BLUE].rise_time,*/
-							hold_time, /*led->pdata[BLUE].hold_time,*/
+							ontime, /*led->pdata[BLUE].hold_time,*/
 							fall_time, /*led->pdata[BLUE].fall_time,*/
-							hold_time, /*led->pdata[BLUE].off_time,*/
+							offtime, /*led->pdata[BLUE].off_time,*/
 							led->pdata[BLUE].delay_time,
-							led->pdata[BLUE].period_num);
-			}
+							led->pdata[BLUE].period_num, value);
 		}
 	}else{
 		pr_err("%s invalid led color!\n",__func__);
