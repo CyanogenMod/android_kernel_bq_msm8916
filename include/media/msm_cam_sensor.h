@@ -539,6 +539,8 @@ struct msm_actuator_set_position_t {
 struct ak7345_actuator_otp_info_t {
 	uint16_t m_inf_code;
 	uint16_t m_macro_code;
+	uint16_t m_inf_adj_code;
+	uint16_t m_macro_adj_code;
 };
 // end by gpg
 

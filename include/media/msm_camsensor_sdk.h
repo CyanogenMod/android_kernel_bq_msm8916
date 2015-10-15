@@ -157,6 +157,9 @@ enum msm_actuator_write_type {
 	// add for AK7345
 	MSM_ACTUATOR_WRITE_DAC_AK7345,
 	// end for AK7345
+	MSM_ACTUATOR_WRITE_DAC_OLQBA22,
+	// add for dw9800w
+	MSM_ACTUATOR_WRITE_DAC_DW9800W,
 };
 
 enum msm_actuator_i2c_operation {
