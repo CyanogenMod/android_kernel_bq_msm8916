@@ -33,14 +33,8 @@
 
 #ifdef CONFIG_OF
 #include <linux/of_gpio.h>
-//#if !defined(CONFIG_HMX_DB)
-//#include <mach/devices_cmdline.h>
-//#endif
+#endif
 
-#endif
-#if defined(CONFIG_TOUCHSCREEN_PROXIMITY)
-#include <linux/touch_psensor.h>
-#endif
 
 #define HIMAX852xes_NAME "Himax852xes"
 #define HIMAX852xes_FINGER_SUPPORT_NUM 10
@@ -51,7 +45,7 @@
 
 #define CONFIG_TOUCHSCREEN_HIMAX_DEBUG
 #if defined(CONFIG_TOUCHSCREEN_HIMAX_DEBUG)
-#if 1
+#if 0
 #define D(x...) printk(KERN_DEBUG "[HXTP] " x)
 #define I(x...) printk(KERN_INFO "[HXTP] " x)
 #define W(x...) printk(KERN_WARNING "[HXTP][WARNING] " x)
@@ -63,19 +57,16 @@
 #else
 #define D(x...) 
 #define I(x...) 
-#define W(x...) 
-#define E(x...) 
+#define W(x...) printk(KERN_WARNING "[HXTP] " x)
+#define E(x...) printk(KERN_ERR "[HXTP] " x)
 #define DIF(x...)
 #endif
 
 #define HX_TP_SYS_DIAG
-#define HX_TP_SYS_REGISTER
-#define HX_TP_SYS_DEBUG
-//#define HX_TP_SYS_FLASH_DUMP
 #define HX_TP_SYS_SELF_TEST
-#define HX_TP_SYS_RESET 
-#define HX_TP_SYS_HITOUCH
+#define HX_TP_SYS_RESET
 #define HX_TP_SYS_2T2R
+#define HX_TP_SYS_DEBUG
 
 //#define HX_EN_SEL_BUTTON		       // Support Self Virtual key		,default is close
 #define HX_EN_MUT_BUTTON		       // Support Mutual Virtual Key	,default is close
@@ -93,10 +84,8 @@
 #define HX_AUTO_UPDATE_FW 		//if enable HX_AUTO_UPDATE_FW, need to disable HX_LOADIN_CONFIG
 //#define HX_AUTO_UPDATE_CONFIG		//if enable HX_AUTO_UPDATE_CONFIG, need to disable HX_LOADIN_CONFIG
 #define HX_SMART_WAKEUP
-//#define HX_DOT_VIEW
 //#define HX_PALM_REPORT
 #define HX_ESD_WORKAROUND
-//#define HX_USB_DETECT
 
 #define HX_85XX_A_SERIES_PWON		1
 #define HX_85XX_B_SERIES_PWON		2
@@ -187,7 +176,6 @@ struct himax_config {
 };
 
 struct himax_ts_data {
-	atomic_t suspended;
 	atomic_t suspend_mode;
 	uint8_t x_channel;
 	uint8_t y_channel;
@@ -208,7 +196,6 @@ struct himax_ts_data {
 	uint16_t last_slot;
 	uint16_t pre_finger_mask;
 
-	uint32_t debug_log_level;
 	uint32_t widthFactor;
 	uint32_t heightFactor;
 	uint32_t tw_x_min;
@@ -228,28 +215,15 @@ struct himax_ts_data {
 	int pre_finger_data[10][2];
 	
 	struct device *dev;
-	struct workqueue_struct *himax_wq;
-	struct work_struct work;
 	struct input_dev *input_dev;
-	struct hrtimer timer;
 	struct i2c_client *client;
 	struct himax_i2c_platform_data *pdata;	
 	struct himax_virtual_key *button;
 	
 #if defined(CONFIG_FB)
 	struct notifier_block fb_notif;
-	struct workqueue_struct *himax_att_wq;
-	struct delayed_work work_att;
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-	struct early_suspend early_suspend;
 #endif
-#if defined(CONFIG_TOUCHSCREEN_PROXIMITY)
-	struct wake_lock ts_wake_lock;
-#endif
-#ifdef HX_TP_SYS_FLASH_DUMP
-	struct workqueue_struct 			*flash_wq;
-	struct work_struct 					flash_work;
-#endif
+
 #ifdef HX_RST_PIN_FUNC
 	int rst_gpio;
 #endif
@@ -257,13 +231,6 @@ struct himax_ts_data {
 #ifdef HX_SMART_WAKEUP
 	uint8_t SMWP_enable;
 	struct wake_lock ts_SMWP_wake_lock;
-#endif
-#ifdef HX_DOT_VIEW
-	uint8_t cover_enable;
-#endif
-#ifdef HX_USB_DETECT
-	uint8_t usb_connected;
-	uint8_t *cable_config;
 #endif
 
 	uint8_t buttons_enable;
@@ -354,15 +321,6 @@ static unsigned char E_IrefTable_7[16][2] = { {0x20,0x0C},{0x20,0x1C},{0x20,0x2C
 
 static u8 HW_RESET_ACTIVATE = 1;
 
-#ifdef HX_TP_SYS_REGISTER
-	static uint8_t register_command 			= 0;
-	static uint8_t multi_register_command = 0;
-	static uint8_t multi_register[8] 			= {0x00};
-	static uint8_t multi_cfg_bank[8] 			= {0x00};
-	static uint8_t multi_value[1024] 			= {0x00};
-	static bool 	config_bank_reg 				= false;
-#endif
-
 #ifdef HX_ESD_WORKAROUND
 	static u8 		ESD_RESET_ACTIVATE 	= 1;
 	static u8 		ESD_COUNTER 		= 0;
@@ -414,42 +372,8 @@ static u8 HW_RESET_ACTIVATE = 1;
 	static unsigned char upgrade_fw[32*1024];
 #endif
 
-#ifdef HX_TP_SYS_FLASH_DUMP
-	static uint8_t *flash_buffer 				= NULL;
-	static uint8_t flash_command 				= 0;
-	static uint8_t flash_read_step 			= 0;
-	static uint8_t flash_progress 			= 0;
-	static uint8_t flash_dump_complete	= 0;
-	static uint8_t flash_dump_fail 			= 0;
-	static uint8_t sys_operation				= 0;
-	static uint8_t flash_dump_sector	 	= 0;
-	static uint8_t flash_dump_page 			= 0;
-	static bool    flash_dump_going			= false;
-
-	static uint8_t getFlashCommand(void);
-	static uint8_t getFlashDumpComplete(void);
-	static uint8_t getFlashDumpFail(void);
-	static uint8_t getFlashDumpProgress(void);
-	static uint8_t getFlashReadStep(void);
-	static uint8_t getSysOperation(void);
-	static uint8_t getFlashDumpSector(void);
-	static uint8_t getFlashDumpPage(void);
-	static bool	   getFlashDumpGoing(void);
-
-	static void setFlashBuffer(void);
-	static void setFlashCommand(uint8_t command);
-	static void setFlashReadStep(uint8_t step);
-	static void setFlashDumpComplete(uint8_t complete);
-	static void setFlashDumpFail(uint8_t fail);
-	static void setFlashDumpProgress(uint8_t progress);
-	static void setSysOperation(uint8_t operation);
-	static void setFlashDumpSector(uint8_t sector);
-	static void setFlashDumpPage(uint8_t page);
-	static void setFlashDumpGoing(bool going);
-#endif
-
 #ifdef HX_RST_PIN_FUNC
-	void himax_HW_reset(uint8_t loadconfig,uint8_t int_off);
+	static void himax_hw_reset(uint8_t loadconfig,uint8_t int_off);
 #endif
 
 #ifdef HX_TP_SYS_SELF_TEST
@@ -457,23 +381,8 @@ static u8 HW_RESET_ACTIVATE = 1;
 	static int himax_chip_self_test(void);
 #endif
 
-#ifdef HX_TP_SYS_HITOUCH
-	static int	hitouch_command			= 0;
-	static bool hitouch_is_connect	= false;
-#endif
-
 #ifdef HX_SMART_WAKEUP
 	static bool FAKE_POWER_KEY_SEND = false;
-#endif
-
-#ifdef HX_DOT_VIEW
-	#include <linux/hall_sensor.h>
-#endif
-
-#ifdef HX_AUTO_UPDATE_CONFIG
-static int		CFB_START_ADDR					= 0;
-static int		CFB_LENGTH						= 0;
-static int		CFB_INFO_LENGTH 				= 0;
 #endif
 
 extern int irq_enable_count;

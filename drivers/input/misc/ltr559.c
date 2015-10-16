@@ -390,13 +390,13 @@ static int ltr559_ps_enable(struct i2c_client *client, int on)
 			return -EFAULT;
 		}
 
-		msleep(WAKEUP_DELAY);
+		msleep(WAKEUP_DELAY+20);
 
 		data->ps_state = 1;
 		input_report_abs(data->input_dev_ps, ABS_DISTANCE, data->ps_state);
 		input_sync(data->input_dev_ps);
 #if defined(CONFIG_L8150_COMMON) || defined(CONFIG_L9100_COMMON)||defined(CONFIG_L8720_COMMON)
-              ltr559_ps_dynamic_caliberate(&data->ps_cdev);
+		ltr559_ps_dynamic_caliberate(&data->ps_cdev);
 #endif
 	} else {
 		ret = i2c_smbus_write_byte_data(client, LTR559_PS_CONTR, MODE_PS_StdBy);
@@ -410,7 +410,7 @@ static int ltr559_ps_enable(struct i2c_client *client, int on)
 			return -EFAULT;
 		}
 	}
-	pr_err("%s: enable=%d OK\n", __func__, on);
+	//pr_err("%s: enable=%d OK\n", __func__, on);
 	return ret;
 }
 
@@ -442,7 +442,7 @@ static int ltr559_als_enable(struct i2c_client *client, int on)
 		ret = i2c_smbus_write_byte_data(client, LTR559_ALS_CONTR, MODE_ALS_StdBy);
 	}
 
-	pr_err("%s: enable=(%d) ret=%d\n", __func__, on, ret);
+	//pr_err("%s: enable=(%d) ret=%d\n", __func__, on, ret);
 	return ret;
 }
 
@@ -566,7 +566,8 @@ static void ltr559_ps_work_func(struct work_struct *work)
 #if defined(CONFIG_L9100_COMMON)||defined(CONFIG_L8720_COMMON)
 			   if (data->dynamic_noise > 20 && psdata < (data->dynamic_noise - 50) ) {
 				  data->dynamic_noise = psdata;
-				  if(psdata < 200){
+				  if(psdata < 100) {
+				  }else if(psdata < 200){
 					  data->platform_data->prox_threshold = psdata+130;
 					  data->platform_data->prox_hsyteresis_threshold = psdata+60;
 				  }else if(psdata < 500){
@@ -660,10 +661,10 @@ static irqreturn_t ltr559_irq_handler(int irq, void *arg)
 static int ltr559_gpio_irq(struct ltr559_data *data)
 {
         struct device_node *np = data->client->dev.of_node;
-	 int err = 0;
+		int err = 0;
 
         data->platform_data->int_gpio = of_get_named_gpio_flags(np, "ltr,irq-gpio", 0, &data->platform_data->irq_gpio_flags);
-        if (data->platform_data->int_gpio < 0)
+		if (data->platform_data->int_gpio < 0)
                 return -EIO;
 
         if (gpio_is_valid(data->platform_data->int_gpio)) {
@@ -675,12 +676,12 @@ static int ltr559_gpio_irq(struct ltr559_data *data)
 
                 err = gpio_direction_input(data->platform_data->int_gpio);
                 if (err) {
-                        printk("%s set_direction for irq gpio failed\n",__func__);
-			return -EIO;
+					printk("%s set_direction for irq gpio failed\n",__func__);
+					return -EIO;
                 }
         }
 
-	data->irq = data->client->irq = gpio_to_irq(data->platform_data->int_gpio);
+		data->irq = data->client->irq = gpio_to_irq(data->platform_data->int_gpio);
 
         if (request_irq(data->irq, ltr559_irq_handler, IRQ_TYPE_LEVEL_LOW/*IRQF_DISABLED|IRQ_TYPE_EDGE_FALLING*/,
                 LTR559_DRV_NAME, data)) {
@@ -720,7 +721,7 @@ static ssize_t ltr559_store_enable_ps(struct device *dev,
 
 	val = simple_strtoul(buf, &after, 10);
 
-	printk(KERN_INFO "enable 559 PS sensor -> %ld\n", val);
+	pr_info("%s: %s proximity sensor\n", __func__, val ? "enable" : "disable");
 
 	mutex_lock(&data->lockw);
 	ltr559_ps_set_enable(&data->ps_cdev, (unsigned int)val);
@@ -748,7 +749,7 @@ static ssize_t ltr559_store_enable_als(struct device *dev,
 
 	val = simple_strtoul(buf, &after, 10);
 
-	printk(KERN_INFO "enable 559 ALS sensor -> %ld\n", val);
+	pr_info("%s: %s light sensor\n", __func__, val ? "enable" : "disable");
 
 	mutex_lock(&data->lockw);
 	ltr559_als_set_enable(&data->als_cdev, (unsigned int)val);
@@ -952,7 +953,7 @@ static int ltr559_als_set_enable(struct sensors_classdev *sensors_cdev,
 	}
 
 	data->als_open_state = enable;
-	pr_err("%s: enable=(%d), data->als_open_state=%d\n", __func__, enable, data->als_open_state);
+	//pr_err("%s: enable=(%d), data->als_open_state=%d\n", __func__, enable, data->als_open_state);
 	return ret;
 }
 static int ltr559_als_poll_delay(struct sensors_classdev *sensors_cdev,
@@ -1141,8 +1142,10 @@ static ssize_t ltr559_ps_dynamic_caliberate(struct sensors_classdev *sensors_cde
 	}
 
 	data->cali_update = true;
-	
-	printk("%s : noise = %d , thd_val_low = %d , htd_val_high = %d \n",__func__, noise, pdata->prox_hsyteresis_threshold, pdata->prox_threshold);
+
+	pr_warn("%s: noise=%d, thd_val_low=%d, htd_val_high=%d\n",
+		__func__, noise,
+		pdata->prox_hsyteresis_threshold, pdata->prox_threshold);
 	return 0;
 }
 #endif
@@ -1174,7 +1177,7 @@ static int ltr559_ps_set_enable(struct sensors_classdev *sensors_cdev,
 	}
 #endif
 	data->ps_open_state = enable;
-	pr_info("%s: enable=%d, data->ps_open_state=%d\n", __func__, enable, data->ps_open_state);
+	pr_info("%s: ps_open_state = %u\n", __func__, data->ps_open_state);
 	return ret;
 }
 
@@ -1580,6 +1583,9 @@ int ltr559_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto exit_power_off;
 	}
 
+	#if defined(CONFIG_L9100_COMMON)
+	i2c_smbus_write_byte_data(client, LTR559_PS_MEAS_RATE, 0x08);
+	#endif
 	/* request gpio and irq */
 	ret = ltr559_gpio_irq(data);
 	if (ret) {

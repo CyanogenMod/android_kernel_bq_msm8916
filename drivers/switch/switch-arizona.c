@@ -95,6 +95,11 @@ struct arizona_extcon_info {
 
 	const struct arizona_micd_range *micd_ranges;
 	int num_micd_ranges;
+#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
+	int hp_reported_state;
+	int hp_ohms;
+	int hp_ohms_ranges;
+#endif
 
 	bool micd_reva;
 	bool micd_clamp;
@@ -147,6 +152,34 @@ static const struct arizona_micd_range micd_default_ranges[] = {
 #endif
 };
 
+#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
+/*
+<50,			Ohms, Gain = Current gain (we are delivering maximum voltage based on CE requirement,=150mVrms) = A (dB) 
+50~100,		Ohms, Gain = A + 1.5 dB  	(1.5/0.5)	= 3		(0.5 steps)
+100~200,		Ohms, Gain = A + 3 dB 		(3/0.5)	= 6
+200~350,    	Ohms, Gain = A + 4.5 dB 	(4.5/0.5)	= 9
+    > 350, 	Ohms, Gain = A + 6 dB 		(6/0.5)	= 12
+*/
+
+static int ohms_ranges[][3] = {
+/*	{0,		50, 		0},
+	{51,		100, 	3},
+	{101,	200, 	6},
+	{201,	350, 	9},
+	{351,	10000,	12}*/
+	{0,		36, 		0},
+	{37,		69, 		1},
+	{70,		102, 	2},
+	{103,	135, 	3},
+	{136,	168, 	4},
+	{169,	201, 	5},
+	{202,	234, 	6},
+	{235,	267, 	7},
+	{268,	300, 	8},
+	{301,	9999, 	9}
+	};
+#endif
+
 /* The number of levels in arizona_micd_levels valid for button thresholds */
 #define ARIZONA_NUM_MICD_BUTTON_LEVELS 64
 
@@ -169,6 +202,33 @@ static ssize_t arizona_extcon_show(struct device *dev,
 				   struct device_attribute *attr,
 				   char *buf);
 DEVICE_ATTR(hp_impedance, S_IRUGO, arizona_extcon_show, NULL);
+
+#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
+static int hp_volume_get(void *info, int volume) {
+	int i = 0;
+	struct arizona_extcon_info *ex_info = (struct arizona_extcon_info *)info;
+	int hp_state = ex_info->hp_reported_state;
+	int hp_ohms = ex_info->hp_ohms;
+	int ranges = ex_info->hp_ohms_ranges;
+
+	pr_debug("At %d In (%s),enter, state(%d), ohms(%d), ranges(%d), volume(%d)\n",
+				__LINE__, __FUNCTION__,hp_state, hp_ohms, ranges, volume);
+
+	if(hp_state == BIT_NO_HEADSET)
+		return 0;
+
+	for(i = 0; i < ranges; i ++) {
+		if(hp_ohms > ohms_ranges[i][0] && hp_ohms <= ohms_ranges[i][1]) {
+			pr_debug("At %d In (%s),index(%d), max(%d), min(%d), add <%d> gain\n", 
+					__LINE__, __FUNCTION__,i, ohms_ranges[i][1], ohms_ranges[i][0], ohms_ranges[i][2]);
+			return ohms_ranges[i][2];
+		}
+	}
+
+	//not in ranges
+	return 0;
+}
+#endif
 
 inline void arizona_extcon_report(struct arizona_extcon_info *info, int state)
 {
@@ -202,6 +262,10 @@ inline void arizona_extcon_report(struct arizona_extcon_info *info, int state)
 		pr_debug("At %d In (%s), wrong, the state is error \n",__LINE__, __FUNCTION__);
 		snd_jack_report_wm8998(0, 455);
 	}
+
+	info->arizona->extcon_info->hp_reported_state = state;
+	pr_debug("At %d In (%s), hp_reported_state=%d \n",__LINE__, __FUNCTION__,info->arizona->extcon_info->hp_reported_state);
+
 #endif
 	switch_set_state(&info->edev, state);
 }
@@ -702,7 +766,12 @@ static int arizona_hpdet_read(struct arizona_extcon_info *info)
 		}
 	}
 
+#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
+	pr_debug("At %d In (%s),HP impedance %d ohms\n",__LINE__, __FUNCTION__, val);
+	info->hp_ohms = val;
+#else
 	dev_dbg(arizona->dev, "HP impedance %d ohms\n", val);
+#endif
 
 
 	return val;
@@ -1942,6 +2011,11 @@ static int arizona_extcon_probe(struct platform_device *pdev)
 	wakeup_source_init(&info->detection_wake_lock, "arizona-jack-detection");
 	info->arizona = arizona;
 	info->dev = &pdev->dev;
+#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
+	info->hp_ohms_ranges = ARRAY_SIZE(ohms_ranges);
+	arizona->pdata.hp_volume_cb = hp_volume_get;
+	arizona->extcon_info = info;
+#endif
 	info->last_jackdet = ~(ARIZONA_MICD_CLAMP_STS | ARIZONA_JD1_STS);
 	INIT_DELAYED_WORK(&info->hpdet_work, arizona_hpdet_work);
 	INIT_DELAYED_WORK(&info->micd_detect_work, arizona_micd_handler);

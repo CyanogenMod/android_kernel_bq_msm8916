@@ -51,6 +51,107 @@ struct snd_soc_jack button_jack = {
 };
 #endif
 
+#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
+/*#define HPOUT1_DOUBLE_R_TLV(xname, reg_left, reg_right, xshift, xmax, xinvert, tlv_array) \
+{	.iface = SNDRV_CTL_ELEM_IFACE_MIXER, .name = (xname),\
+	.access = SNDRV_CTL_ELEM_ACCESS_TLV_READ |\
+		 SNDRV_CTL_ELEM_ACCESS_READWRITE,\
+	.tlv.p = (tlv_array), \
+	.info = snd_soc_info_volsw, \
+	.get = snd_soc_get_volsw, .put = arizoan_hp_put_volsw, \
+	.private_value = SOC_DOUBLE_R_VALUE(reg_left, reg_right, xshift, \
+					    xmax, xinvert) }*/
+#define HPOUT1_SINGLE_TLV(xname, reg, xshift, xmax, xinvert, tlv_array) \
+{	.iface = SNDRV_CTL_ELEM_IFACE_MIXER, .name = (xname),\
+	.access = SNDRV_CTL_ELEM_ACCESS_TLV_READ |\
+		 SNDRV_CTL_ELEM_ACCESS_READWRITE,\
+	.tlv.p = (tlv_array), \
+	.info = snd_soc_info_volsw, \
+	.get = snd_soc_get_volsw, .put = arizoan_hp_put_volsw, \
+	.private_value = SOC_SINGLE_VALUE(reg, xshift, \
+					    xmax, xinvert) }
+
+static inline bool arizoan_hp_volsw_is_stereo(struct soc_mixer_control *mc)
+{
+	pr_debug("At %d In (%s),enter\n",__LINE__, __FUNCTION__);
+	if (mc->reg == mc->rreg && mc->shift == mc->rshift)
+		return 0;
+	/*
+	 * mc->reg == mc->rreg && mc->shift != mc->rshift, or
+	 * mc->reg != mc->rreg means that the control is
+	 * stereo (bits in one register or in two registers)
+	 */
+	return 1;
+}
+
+/**
+ * snd_soc_put_volsw - single mixer put callback
+ * @kcontrol: mixer control
+ * @ucontrol: control element information
+ *
+ * Callback to set the value of a single mixer control, or a double mixer
+ * control that spans 2 registers.
+ *
+ * Returns 0 for success.
+ */
+
+typedef void (*twoparam)(void);
+
+static int arizoan_hp_put_volsw(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct soc_mixer_control *mc =
+		(struct soc_mixer_control *)kcontrol->private_value;
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	unsigned int reg = mc->reg;
+	unsigned int reg2 = mc->rreg;
+	unsigned int shift = mc->shift;
+	unsigned int rshift = mc->rshift;
+	int max = mc->max;
+	unsigned int mask = (1 << fls(max)) - 1;
+	unsigned int invert = mc->invert;
+	int err;
+	bool type_2r = 0;
+	unsigned int val2 = 0;
+	unsigned int val, val_mask;
+	struct arizona *arizona = dev_get_drvdata(codec->dev->parent);
+
+	val = (ucontrol->value.integer.value[0] & mask);
+	val += arizona->pdata.hp_volume_cb((void*)arizona->extcon_info, val);
+
+	pr_debug("At %d In (%s),enter, val(%d), org(%d)\n",__LINE__,__FUNCTION__, val, (int)ucontrol->value.integer.value[0]);
+	if (invert)
+		val = max - val;
+	val_mask = mask << shift;
+	val = val << shift;
+	if (snd_soc_volsw_is_stereo(mc)) {
+		val2 = (ucontrol->value.integer.value[1] & mask);
+		val2 += arizona->pdata.hp_volume_cb((void*)arizona->extcon_info, val2);	
+
+		pr_debug("At %d In (%s),val2(%d), org(%d)\n", __LINE__,__FUNCTION__, val2, (int)ucontrol->value.integer.value[1]);
+		if (invert)
+			val2 = max - val2;
+		if (reg == reg2) {
+			val_mask |= mask << rshift;
+			val |= val2 << rshift;
+		} else {
+			val2 = val2 << shift;
+			type_2r = 1;
+		}
+	}
+
+	pr_debug("At %d In (%s),set value,reg=0x%x,val=%d\n",__LINE__,__FUNCTION__,reg,val);
+	err = snd_soc_update_bits_locked(codec, reg, val_mask, val);
+	if (err < 0)
+		return err;
+	pr_debug("At %d In (%s),err=%d,type_2r=%d,set value,reg2=0x%x,val2=%d\n",__LINE__,__FUNCTION__,err,type_2r,reg2,val2);
+
+	if (type_2r)
+		err = snd_soc_update_bits_locked(codec, reg2, val_mask, val2);
+	return err;
+}
+#endif
+						
 struct wm8998_priv {
 	struct arizona_priv core;
 	struct arizona_fll fll[2];
@@ -253,9 +354,22 @@ SOC_DOUBLE_R("Speaker Digital Switch", ARIZONA_DAC_DIGITAL_VOLUME_4L,
 SOC_DOUBLE_R("SPKDAT Digital Switch", ARIZONA_DAC_DIGITAL_VOLUME_5L,
 	     ARIZONA_DAC_DIGITAL_VOLUME_5R, ARIZONA_OUT5L_MUTE_SHIFT, 1, 1),
 
+#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
+//HPOUT1_DOUBLE_R_TLV("HPOUT Digital Volume", ARIZONA_DAC_DIGITAL_VOLUME_1L,
+//		 ARIZONA_DAC_DIGITAL_VOLUME_1R, ARIZONA_OUT1L_VOL_SHIFT,
+//		 0xbf, 0, digital_tlv),
+
+HPOUT1_SINGLE_TLV("HPOUT1L Digital Volume", ARIZONA_DAC_DIGITAL_VOLUME_1L,
+		 ARIZONA_OUT1L_VOL_SHIFT,
+		 0xbf, 0, digital_tlv),
+HPOUT1_SINGLE_TLV("HPOUT1R Digital Volume", ARIZONA_DAC_DIGITAL_VOLUME_1R,
+		 ARIZONA_OUT1L_VOL_SHIFT,
+		 0xbf, 0, digital_tlv),
+#else
 SOC_DOUBLE_R_TLV("HPOUT Digital Volume", ARIZONA_DAC_DIGITAL_VOLUME_1L,
 		 ARIZONA_DAC_DIGITAL_VOLUME_1R, ARIZONA_OUT1L_VOL_SHIFT,
 		 0xbf, 0, digital_tlv),
+#endif
 SOC_DOUBLE_R_TLV("LINEOUT Digital Volume", ARIZONA_DAC_DIGITAL_VOLUME_2L,
 		 ARIZONA_DAC_DIGITAL_VOLUME_2R, ARIZONA_OUT2L_VOL_SHIFT,
 		 0xbf, 0, digital_tlv),

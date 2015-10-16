@@ -30,6 +30,9 @@ uint8_t g_imx214_otp_module_id = 0;
 uint8_t g_ov5670_otp_module_id = 0;
 uint8_t g_s5k3l2_otp_module_id = 0;
 uint8_t g_s5k5e2_otp_module_id = 0;
+
+uint8_t g_otp_driver_ic_id = 0;	// add by gpg to diff truly module for L870x
+
 /**
   * msm_eeprom_verify_sum - verify crc32 checksum
   * @mem:	data buffer
@@ -1187,6 +1190,16 @@ static int imx214_set_otp_module_id(struct msm_eeprom_ctrl_t *e_ctrl)
 			{
 				printk("imx214_set_otp_module_id imx214 truly module \n");
 				g_imx214_otp_module_id = mid;
+#if 0 // deside by data for now by gpg		
+				g_otp_driver_ic_id = buffer[8+PageCount*pageIndex];
+#else
+				if(	((buffer[2+PageCount*pageIndex] == 15) && (buffer[3+PageCount*pageIndex] >= 0x09))
+					|| (buffer[2+PageCount*pageIndex] > 15) ) // after 201509
+					g_otp_driver_ic_id = 0x01;  // for 846
+				else
+					g_otp_driver_ic_id = 0x02;  // cm9886
+#endif
+				printk("imx214_truly module driver id 0x%02x\n", g_otp_driver_ic_id);	
 				break;
 			}
 		}
@@ -1429,7 +1442,10 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 			|| (strcmp(eb_info->eeprom_name, "imx214_olqba15") == 0)
 			|| (strcmp(eb_info->eeprom_name, "imx214_f13n05e") == 0) 
 			|| (strcmp(eb_info->eeprom_name, "imx214_olqba22") == 0)
-			|| (strcmp(eb_info->eeprom_name, "imx214_f13n05k") == 0) ) )
+			|| (strcmp(eb_info->eeprom_name, "imx214_f13n05k") == 0)
+			|| (strcmp(eb_info->eeprom_name, "truly_cm9886qr") == 0)
+			|| (strcmp(eb_info->eeprom_name, "imx214_cma846") == 0)
+		) )
 	{
 		CDBG("imx214 name = %s\n",eb_info->eeprom_name);
 		imx214_set_otp_module_id(e_ctrl);

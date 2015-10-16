@@ -107,6 +107,7 @@ struct pa12200001_data {
     /* threshold */
     u8		ps_thrd_low;
     u8		ps_thrd_high;
+    u8		irq_enabled;
     int irq_gpio;
     int irq;
     struct regulator *vdd;
@@ -263,6 +264,8 @@ static int pa12200001_set_mode(struct i2c_client *client, int mode)
     int	ret;
 	u8 buftemp[2]={0};
     u8 regdata = 0;
+	int previous_mode = pa12200001_get_mode(client);
+	int ps_already_enabled = (previous_mode & PS_ACTIVE) >> 1;
 
     pr_debug("mode = 0x%x\n", (u32)mode);
 
@@ -281,7 +284,7 @@ static int pa12200001_set_mode(struct i2c_client *client, int mode)
 	    } else {
             if(buftemp[0] != 0) {
                 pr_info("use cal file, x-talk=%d, base=%d\n",buftemp[0],buftemp[1]);
-                data->crosstalk=buftemp[0]+PA12_PS_OFFSET_EXTRA;
+                data->crosstalk=buftemp[0];
                 data->crosstalk_base=buftemp[1];
             } else {
                 pr_info("xtalk read 0, crosstalk=%u\n", data->crosstalk);
@@ -294,7 +297,7 @@ static int pa12200001_set_mode(struct i2c_client *client, int mode)
 	    data->cal_result = 0;
 	}
 
-    if(data->ps_enable & PA12_FAST_CAL)
+    if(data->ps_enable && PA12_FAST_CAL && !ps_already_enabled)
         pa12200001_run_fast_calibration(client);
 
 #ifdef USE_LIGHT_FEATURE
@@ -302,7 +305,7 @@ static int pa12200001_set_mode(struct i2c_client *client, int mode)
         ALSAVGStart=1;
 #endif
 
-    if (mode != pa12200001_get_mode(client)) {
+    if (mode != previous_mode) {
 #ifdef USE_LIGHT_FEATURE
         if (ALS_POLLING) {
             /* Enable/Disable ALS */
@@ -325,7 +328,7 @@ static int pa12200001_set_mode(struct i2c_client *client, int mode)
             }
         }
 
-		if (data->ps_enable) {
+		if (data->ps_enable && !ps_already_enabled) {
 			u8 buf;
 			i2c_write_reg(client, REG_PS_TH, 0xFF);
 			i2c_write_reg(client, REG_PS_TL, 0x00);
@@ -337,7 +340,7 @@ static int pa12200001_set_mode(struct i2c_client *client, int mode)
         regdata = regdata & 0xFC;
         ret = i2c_write_reg(client, REG_CFG0, regdata | mode);
 
-		if (data->ps_enable) {
+		if (data->ps_enable && !ps_already_enabled) {
 			msleep(50);
             if(data->ps_thrd_low == PA12_PS_TH_LOW2&&data->ps_thrd_high == PA12_PS_TH_HIGH2) {
                 i2c_write_reg(client, REG_PS_TH, PA12_PS_TH_HIGH2);
@@ -558,7 +561,7 @@ CROSSTALK_BASE_RECALIBRATION:
 
     pr_debug("FINISH proximity sensor calibration\n");
     /*Write x-talk info to file*/
-    buftemp[0]=data->crosstalk-PA12_PS_OFFSET_EXTRA;
+    buftemp[0]=data->crosstalk;//-PA12_PS_OFFSET_EXTRA;
     buftemp[1]=data->crosstalk_base;
 
 	pr_info("write buftemp[0]=%u, buftemp[1]=%u\n", buftemp[0], buftemp[1]);
@@ -1009,18 +1012,24 @@ static int pa12200001_ps_set_enable(struct sensors_classdev *sensors_cdev,
 
         input_report_abs(pa1->proximity_input_dev, ABS_DISTANCE, Pval);
         input_sync(pa1->proximity_input_dev);
+		pa1->ps_stat = Pval;
 		irq_set_irq_wake(pa1->irq, 1);
 		wake_lock(&pa1->ps_wakelock);
-		enable_irq(pa1->irq);
+		if (!pa1->irq_enabled) {
+			enable_irq(pa1->irq);
+			pa1->irq_enabled = 1;
+		}
     } else {
-		disable_irq(pa1->irq);
+		if (pa1->irq_enabled) {
+			disable_irq(pa1->irq);
+			pa1->irq_enabled = 0;
+		}
         mode &= ~PS_ACTIVE;
 		pa12200001_set_mode(pa1->client, mode);
         clear_bit(PS_ACTIVE, &pa1->enable);
 		irq_set_irq_wake(pa1->irq, 0);
 		wake_unlock(&pa1->ps_wakelock);
     }
-    pa12200001_set_mode(pa1->client, mode);
     pa1->ps_enable=((PS_ACTIVE & mode)>>1);
     return 0;
 }
@@ -1276,9 +1285,10 @@ static void pa12200001_work_func_proximity(struct work_struct *work)
 
     pval = pa12200001_get_object(data->client);
 	if (pval == data->ps_stat) {
-		pr_info("ignore repeated event !\n");
+		pr_info("ignore repeated event\n");
 		return;
 	}
+
 	data->ps_stat = pval;
 
     input_report_abs(data->proximity_input_dev, ABS_DISTANCE, pval);
@@ -1556,29 +1566,28 @@ int pa12200001_ps_state(void)
 	int mode = 0;
 	int pval = -1;
 	struct pa12200001_data *data;
+	u8 psdata;
 
 	if (pa12_i2c_client)
 		data = i2c_get_clientdata(pa12_i2c_client);
 	else
 		return -ENODEV;
 
-	if (!data->ps_enable) {
+	if (data && !data->ps_enable) {
 		mode = pa12200001_get_mode(data->client);
 		/* turn on ps */
 		mode |= PS_ACTIVE;
-		irq_set_irq_wake(data->irq, 1);
 		pa12200001_set_mode(data->client, mode);
 		msleep(20);
-		pval = pa12200001_get_object(data->client);
-
+		psdata = pa12200001_get_ps_value(data->client);
+		if (psdata > data->ps_thrd_high)
+			pval = 1;
+		else if (psdata < data->ps_thrd_low)
+			pval = 0;
 		/* turn off ps */
 		mode &= ~PS_ACTIVE;
-		irq_set_irq_wake(data->irq, 0);
 		pa12200001_set_mode(data->client, mode);
-	} else {
-		pval = pa12200001_get_object(data->client);
 	}
-
 	pr_info("pval = %d\n", pval);
 	return pval;
 }
@@ -1688,8 +1697,11 @@ static int pa12200001_probe(struct i2c_client *client,
                 PA12200001_DRV_NAME,(void *)client);
         if (err)
             pr_err("request irq %d failed\n", data->irq);
-        else
+        else {
+			disable_irq(data->irq);
+			data->irq_enabled = 0;
 			pr_debug("register proximity irq done\n");
+        }
     }
 
     data->wq = create_singlethread_workqueue("pa12200001_wq");
@@ -1850,17 +1862,6 @@ static int pa12200001_pm_suspend(struct device *dev)
 }
 static int pa12200001_pm_resume(struct device *dev)
 {
-    struct pa12200001_data  *pa = dev_get_drvdata(dev);
-    int pval;
-    int enable;
-
-    enable = (PS_ACTIVE & pa12200001_get_mode(pa->client))?1:0;
-    if (enable) {
-        pval = pa12200001_get_object(pa->client);
-        pr_debug("ps resume, report %s\n", pval ? "Far" : "Near");
-        input_report_abs(pa->proximity_input_dev, ABS_DISTANCE, pval);
-        input_sync(pa->proximity_input_dev);
-    }
     return 0;
 }
 static const struct dev_pm_ops pa12200001_dev_pm_ops = {

@@ -84,7 +84,6 @@ extern int i2c_himax_write_command(struct i2c_client *client, uint8_t command, u
 extern int i2c_himax_master_write(struct i2c_client *client, uint8_t *data, uint8_t length, uint8_t toRetry);
 extern int i2c_himax_read_command(struct i2c_client *client, uint8_t length, uint8_t *data, uint8_t *readlength, uint8_t toRetry);
 extern void himax_int_enable(int irqnum, int enable);
-extern int himax_ts_register_interrupt(struct i2c_client *client);
 extern void himax_rst_gpio_set(int pinnum, uint8_t value);
 extern uint8_t himax_int_gpio_read(int pinnum);
 

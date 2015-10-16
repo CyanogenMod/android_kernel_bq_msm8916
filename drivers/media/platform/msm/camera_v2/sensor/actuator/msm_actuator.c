@@ -25,6 +25,8 @@ DEFINE_MSM_MUTEX(msm_actuator_mutex);
 // add by gpg for ak7345
 uint16_t inf_code = 0;
 uint16_t macro_code = 0;
+uint16_t inf_adj_otp = 0;
+uint16_t macro_adj_otp = 0;
 // end by gpg
 
 static struct v4l2_file_operations msm_actuator_v4l2_subdev_fops;
@@ -167,7 +169,29 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 					i2c_byte2 = ((value&0x1) << 7 );
 				}
 			}
-		} else if(write_arr[i].reg_write_type == MSM_ACTUATOR_WRITE_DAC_DW9800) {
+		}else if (write_arr[i].reg_write_type == MSM_ACTUATOR_WRITE_DAC_OLQBA22)
+		{
+			if(macro_code <= inf_code)
+			{
+				pr_err("ERROR ! af:macro_code:%d,inf_code:%d\n", macro_code,inf_code);
+				return ;
+			}
+			
+			if(macro_code> 1023 - macro_adj_otp)
+			{
+				macro_code = 1023 - macro_adj_otp;
+			}
+			pos_value = (next_lens_position*((macro_code+macro_adj_otp )-(inf_code-inf_adj_otp))/1024+(inf_code-inf_adj_otp));
+			CDBG("af:pos_value:%d, next_lens_position:%d,macro_code:%d,inf_code:%d\n",
+						pos_value, next_lens_position,macro_code,inf_code);
+
+			value = (pos_value | 0xC400);
+			i2c_byte1 = (value & 0xFF00) >> 8;
+			i2c_byte2 = value & 0xFF;
+			CDBG("byte1:0x%x, byte2:0x%x\n",
+									i2c_byte1, i2c_byte2);
+
+		}else if(write_arr[i].reg_write_type == MSM_ACTUATOR_WRITE_DAC_DW9800) {
 			value = (next_lens_position <<
 				write_arr[i].data_shift) |
 				((hw_dword & write_arr[i].hw_mask) >>
@@ -183,6 +207,47 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 					i2c_tbl[a_ctrl->i2c_tbl_index].
 						reg_addr = i2c_byte1;
 					i2c_tbl[a_ctrl->i2c_tbl_index].
+						reg_data = i2c_byte2;
+					i2c_tbl[a_ctrl->i2c_tbl_index].
+						delay = 0;
+					a_ctrl->i2c_tbl_index++;
+					i++;
+					i2c_byte1 = write_arr[i].reg_addr;
+					i2c_byte2 = value & 0xFF;
+				}
+			} else {
+				i2c_byte1 = (value & 0xFF00) >> 8;
+				i2c_byte2 = value & 0xFF;
+			}
+		}else if(write_arr[i].reg_write_type == MSM_ACTUATOR_WRITE_DAC_DW9800W) {
+			
+			if(macro_code <= inf_code)
+			{
+				pr_err("ERROR ! af:macro_code:%d,inf_code:%d\n", macro_code,inf_code);
+				return ;
+			}
+			if(macro_code> 1023 - OTP_ADJUST_MAC)
+			{
+				macro_code = 1023 - OTP_ADJUST_MAC;
+			}
+			pos_value = (next_lens_position*((macro_code+OTP_ADJUST_MAC)-(inf_code-OTP_ADJUST_INF))/1024+(inf_code-OTP_ADJUST_INF));
+			CDBG("af:pos_value:%d, next_lens_position:%d,macro_code:%d,inf_code:%d\n",\
+						pos_value, next_lens_position,macro_code,inf_code);
+									
+			value = (pos_value <<
+				write_arr[i].data_shift) |
+				((hw_dword & write_arr[i].hw_mask) >>
+				write_arr[i].hw_shift);
+			if (write_arr[i].reg_addr != 0xFFFF) {
+				i2c_byte1 = write_arr[i].reg_addr;
+				i2c_byte2 = value;
+				CDBG("--zhangyu1--byte1:0x%x, byte2:0x%x, next_lens_position:%d\n",i2c_byte1, i2c_byte2,next_lens_position);
+				if (size != (i+1)) {
+					i2c_byte2 = (value & 0xFF00) >> 8;
+					CDBG("--zhangyu2--byte1:0x%x, byte2:0x%x, next_lens_position:%d\n",i2c_byte1, i2c_byte2,next_lens_position);
+					i2c_tbl[a_ctrl->i2c_tbl_index].
+						reg_addr = i2c_byte1;
+					i2c_tbl[a_ctrl->i2c_tbl_index].    
 						reg_data = i2c_byte2;
 					i2c_tbl[a_ctrl->i2c_tbl_index].
 						delay = 0;
@@ -608,7 +673,8 @@ static int32_t msm_actuator_set_default_focus(
 {
 	int32_t rc = 0;
 	CDBG("Enter\n");
-#ifdef CONFIG_L8700_COMMON
+// modify lz    #ifdef CONFIG_L8700_COMMON
+#if 1
 		move_params->dest_step_pos = 1;
 #else
 	if (a_ctrl->curr_step_pos != 0)
@@ -948,6 +1014,8 @@ static int32_t msm_actuator_config(struct msm_actuator_ctrl_t *a_ctrl,
 	case CFG_AK7345_ACTUATOR_SET_OTP_TUNE:
 		inf_code = cdata->cfg.ak7345_otp_info.m_inf_code;
 		macro_code = cdata->cfg.ak7345_otp_info.m_macro_code;
+		inf_adj_otp = cdata->cfg.ak7345_otp_info.m_inf_adj_code;
+		macro_adj_otp = cdata->cfg.ak7345_otp_info.m_macro_adj_code;
 		pr_err("CFG_AK7345_ACTUATOR_SET_OTP_TUNE inf_code=%d, macro_code=%d %p\n",inf_code, macro_code,&(cdata->cfg.ak7345_otp_info));
 		break;
 // end by gpg
@@ -1164,8 +1232,9 @@ static long msm_actuator_subdev_do_ioctl(
 			actuator_data.cfgtype = u32->cfgtype;
 			actuator_data.cfg.ak7345_otp_info.m_inf_code = ((struct msm_actuator_cfg_data *)u32)->cfg.ak7345_otp_info.m_inf_code;
 			actuator_data.cfg.ak7345_otp_info.m_macro_code = ((struct msm_actuator_cfg_data *)u32)->cfg.ak7345_otp_info.m_macro_code;
+			actuator_data.cfg.ak7345_otp_info.m_inf_adj_code = ((struct msm_actuator_cfg_data *)u32)->cfg.ak7345_otp_info.m_inf_adj_code;
+			actuator_data.cfg.ak7345_otp_info.m_macro_adj_code = ((struct msm_actuator_cfg_data *)u32)->cfg.ak7345_otp_info.m_inf_adj_code;
 			break;
-
 		default:
 			actuator_data.cfgtype = u32->cfgtype;
 			parg = &actuator_data;

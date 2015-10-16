@@ -6018,7 +6018,7 @@ static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		bma2x2_enable_show, bma2x2_enable_store);
 static DEVICE_ATTR(SleepDur, S_IRUGO|S_IWUSR|S_IWGRP,
 		bma2x2_SleepDur_show, bma2x2_SleepDur_store);
-#if defined(CONFIG_L8702_COMMON)
+#if defined(CONFIG_L8700_COMMON)
 static DEVICE_ATTR(acc_fast_calibration_x, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		bma2x2_fast_calibration_x_show,
 		bma2x2_fast_calibration_x_store);
@@ -6055,7 +6055,7 @@ static DEVICE_ATTR(reg, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		bma2x2_register_show, bma2x2_register_store);
 static DEVICE_ATTR(chip_id, S_IRUGO,
 		bma2x2_chip_id_show, NULL);
-#if defined(CONFIG_L8702_COMMON)
+#if defined(CONFIG_L8700_COMMON)
 static DEVICE_ATTR(acc_offset_x, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		bma2x2_offset_x_show,
 		bma2x2_offset_x_store);
@@ -6149,7 +6149,7 @@ static struct attribute *bma2x2_attributes[] = {
 	&dev_attr_enable.attr,
 	&dev_attr_SleepDur.attr,
 	&dev_attr_reg.attr,
-#if defined(CONFIG_L8702_COMMON)
+#if defined(CONFIG_L8700_COMMON)
 	&dev_attr_acc_fast_calibration_x.attr,
 	&dev_attr_acc_fast_calibration_y.attr,
 	&dev_attr_acc_fast_calibration_z.attr,
@@ -6165,7 +6165,7 @@ static struct attribute *bma2x2_attributes[] = {
 	&dev_attr_fifo_data_sel.attr,
 	&dev_attr_fifo_data_frame.attr,
 	&dev_attr_chip_id.attr,
-#if defined(CONFIG_L8702_COMMON)
+#if defined(CONFIG_L8700_COMMON)
 	&dev_attr_acc_offset_x.attr,
 	&dev_attr_acc_offset_y.attr,
 	&dev_attr_acc_offset_z.attr,

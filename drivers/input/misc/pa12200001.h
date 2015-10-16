@@ -34,8 +34,8 @@
 #define PA12_PS_TH_HIGH			40
 #define PA12_PS_TH_LOW			25
 
-#define PA12_PS_TH_HIGH2		40//60
-#define PA12_PS_TH_LOW2			25//45
+#define PA12_PS_TH_HIGH2		35//40//60
+#define PA12_PS_TH_LOW2			20//25//45
 
 
 #define PA12_PS_TH_MIN		  	0	// Minimun value
@@ -48,7 +48,7 @@
 #define PA12_PS_FAR_DISTANCE            1       //Far distance 1 cm 
 
 #define PA12_PS_OFFSET_DEFAULT  	5 	// for X-talk cannceling
-#define PA12_PS_OFFSET_EXTRA  2
+#define PA12_PS_OFFSET_EXTRA  1
 #define PA12_PS_OFFSET_MAX              50
 #define PA12_PS_OFFSET_MIN              5
 #define PA12_FAST_CAL			0

@@ -606,7 +606,7 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 		pr_info("%s, bl_level=%d\n",__func__,bl_level);
 	}
 
-#if defined(CONFIG_L9100_COMMON)
+#if defined(CONFIG_L9100_COMMON) || defined(CONFIG_L8700_COMMON)
 	if(old_bl_level==0 && bl_level != 0)
 	{
 		msleep(68);

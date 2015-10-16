@@ -19,7 +19,6 @@
  * which includes hardware related functions, input device register,
  * device attribute files, etc.
 */
-#define DEBUG
 #define pr_fmt(fmt)      "%s: " fmt, __func__
 #include "bmi160.h"
 #include "bmi160_driver.h"
@@ -2630,19 +2629,22 @@ static ssize_t bmi160_gyro_op_mode_store(struct device *dev,
 			err = BMI_CALL_API(set_command_register)
 				(bmi_pmu_cmd_gyro_arr[BMI_GYRO_PM_NORMAL]);
 			client_data->pw.gyro_pm = BMI_GYRO_PM_NORMAL;
-			mdelay(3);
+			//mdelay(3);
+			msleep(60);
 			break;
 		case BMI_GYRO_PM_FAST_START:
 			err = BMI_CALL_API(set_command_register)
 				(bmi_pmu_cmd_gyro_arr[BMI_GYRO_PM_FAST_START]);
 			client_data->pw.gyro_pm = BMI_GYRO_PM_FAST_START;
-			mdelay(3);
+			//mdelay(3);
+			msleep(60);
 			break;
 		case BMI_GYRO_PM_SUSPEND:
 			err = BMI_CALL_API(set_command_register)
 				(bmi_pmu_cmd_gyro_arr[BMI_GYRO_PM_SUSPEND]);
 			client_data->pw.gyro_pm = BMI_GYRO_PM_SUSPEND;
-			mdelay(3);
+			//mdelay(3);
+			msleep(60);
 			break;
 		default:
 			mutex_unlock(&client_data->mutex_op_mode);
@@ -3613,16 +3615,17 @@ int bmi_probe(struct bmi_client_data *client_data, struct device *dev)
 #ifdef BMI160_MAG_INTERFACE_SUPPORT
 	u8 mag_urst_len;
 #endif
-	/* check chip id */
-	err = bmi_check_chip_id(client_data);
-	if (err)
-		goto exit_err_clean;
 
 	dev_set_drvdata(dev, client_data);
 	client_data->dev = dev;
 
 	mutex_init(&client_data->mutex_enable);
 	mutex_init(&client_data->mutex_op_mode);
+
+	/* check chip id */
+	err = bmi_check_chip_id(client_data);
+	if (err)
+		goto exit_err_clean;
 
 	/* input device init */
 	err = bmi_input_init(client_data);
@@ -3674,7 +3677,7 @@ int bmi_probe(struct bmi_client_data *client_data, struct device *dev)
 	client_data->device.delay_msec = bmi_delay;
 	err = BMI_CALL_API(init)(&client_data->device);
 
-	bmi_dump_reg(client_data);
+	//bmi_dump_reg(client_data);
 
 	/*power on detected*/
 	/*or softrest(cmd 0xB6) */
@@ -3858,10 +3861,8 @@ static int bmi_post_resume(struct bmi_client_data *client_data)
 
 	mutex_lock(&client_data->mutex_enable);
 
-	pr_debug("set acc to PM_NORMAL\n");
-	bmi160_set_acc_op_mode(client_data, BMI_ACC_PM_NORMAL);
-
 	if (atomic_read(&client_data->wkqueue_en) == 1) {
+		bmi160_set_acc_op_mode(client_data, BMI_ACC_PM_NORMAL);
 		schedule_delayed_work(&client_data->work,
 				msecs_to_jiffies(
 					atomic_read(&client_data->delay)));
@@ -3879,10 +3880,8 @@ int bmi_suspend(struct device *dev)
 	unsigned char stc_enable;
 	dev_err(client_data->dev, "bmi suspend function entrance");
 
-	pr_debug("set acc to PM_SUSPEND\n");
-	bmi160_set_acc_op_mode(client_data, BMI_ACC_PM_SUSPEND);
-
 	if (atomic_read(&client_data->wkqueue_en) == 1) {
+		bmi160_set_acc_op_mode(client_data, BMI_ACC_PM_SUSPEND);
 		cancel_delayed_work_sync(&client_data->work);
 	}
 	BMI_CALL_API(get_step_counter_enable)(&stc_enable);
@@ -3890,20 +3889,20 @@ int bmi_suspend(struct device *dev)
 	if (client_data->pw.acc_pm != BMI_ACC_PM_SUSPEND && (stc_enable != 1)) {
 		err += BMI_CALL_API(set_command_register)
 				(bmi_pmu_cmd_acc_arr[BMI_ACC_PM_SUSPEND]);
-		client_data->pw.acc_pm = BMI_ACC_PM_SUSPEND;
+		//client_data->pw.acc_pm = BMI_ACC_PM_SUSPEND;
 		mdelay(3);
 	}
 	if (client_data->pw.gyro_pm != BMI_GYRO_PM_SUSPEND) {
 		err += BMI_CALL_API(set_command_register)
 				(bmi_pmu_cmd_gyro_arr[BMI_GYRO_PM_SUSPEND]);
-		client_data->pw.gyro_pm = BMI_GYRO_PM_SUSPEND;
+		//client_data->pw.gyro_pm = BMI_GYRO_PM_SUSPEND;
 		mdelay(3);
 	}
 
 	if (client_data->pw.mag_pm != BMI_MAG_PM_SUSPEND) {
 		bmi160_set_mag_and_secondary_if_powermode
 					(BMI160_MAG_SUSPEND_MODE);
-		client_data->pw.mag_pm = BMI160_MAG_SUSPEND_MODE;
+		//client_data->pw.mag_pm = BMI160_MAG_SUSPEND_MODE;
 		mdelay(3);
 	}
 
@@ -3920,7 +3919,19 @@ int bmi_resume(struct device *dev)
 	int err = 0;
 	struct bmi_client_data *client_data = dev_get_drvdata(dev);
 
-	pr_debug("enter\n");
+	pr_debug("enter...\n");
+
+	if (client_data->pw.acc_pm != BMI_ACC_PM_SUSPEND) {
+		err += BMI_CALL_API(set_command_register)
+			(bmi_pmu_cmd_acc_arr[BMI_ACC_PM_NORMAL]);
+		mdelay(3);
+	}
+
+	if (client_data->pw.gyro_pm != BMI_GYRO_PM_SUSPEND) {
+		err += BMI_CALL_API(set_command_register)
+			(bmi_pmu_cmd_gyro_arr[BMI_GYRO_PM_NORMAL]);
+		mdelay(3);
+	}
 	/* post resume operation */
 	err = bmi_post_resume(client_data);
 

@@ -140,6 +140,7 @@ struct arizona_pdata {
 
 #if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
 	int ldo_spk;
+	int (*hp_volume_cb)(void *info, int volume);
 #endif
 
 #if defined(CONFIG_LCT_FLORIDA_GPIO_CTRL)		

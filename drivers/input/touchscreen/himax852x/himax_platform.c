@@ -12,7 +12,6 @@
 * GNU General Public License for more details.
 *
 */
-#define pr_fmt(fmt) "[HXTP] %s: " fmt, __func__
 #include <linux/input/himax_platform.h>
 
 
@@ -26,9 +25,7 @@
 
 int irq_enable_count = 0;
 
-
-#ifdef QCT
-int i2c_himax_read(struct i2c_client *client, uint8_t command, uint8_t *data, uint8_t length, uint8_t toRetry)
+int i2c_himax_read(struct i2c_client *client, uint8_t command, uint8_t *data, uint8_t length, uint8_t retry_max)
 {
 	int retry;
 	struct i2c_msg msg[] = {
@@ -46,53 +43,52 @@ int i2c_himax_read(struct i2c_client *client, uint8_t command, uint8_t *data, ui
 		}
 	};
 
-	for (retry = 0; retry < toRetry; retry++) {
+	for (retry = 0; retry < retry_max; retry++) {
 		if (i2c_transfer(client->adapter, msg, 2) == 2)
 			break;
 		msleep(10);
 	}
-	if (retry == toRetry) {
-		E("%s: i2c_read_block retry over %d\n",
-			__func__, toRetry);
+	if (retry == retry_max) {
+		pr_err("[HXTP] %s: read reg 0x%x failed, by %pS\n",
+			__func__, (u32)command, __builtin_return_address(0));
 		return -EIO;
 	}
 	return 0;
 
 }
 
-int i2c_himax_write(struct i2c_client *client, uint8_t command, uint8_t *data, uint8_t length, uint8_t toRetry)
+int i2c_himax_write(struct i2c_client *client, uint8_t command, uint8_t *data, uint8_t length, uint8_t retry_max)
 {
-	int retry/*, loop_i*/;
+	int retry;
 	uint8_t buf[length + 1];
 
 	struct i2c_msg msg[] = {
 		{
-			.addr = client->addr,
+			.addr  = client->addr,
 			.flags = 0,
-			.len = length + 1,
-			.buf = buf,
+			.len   = length + 1,
+			.buf   = buf,
 		}
 	};
 
 	buf[0] = command;
 	memcpy(buf+1, data, length);
-	
-	for (retry = 0; retry < toRetry; retry++) {
+
+	for (retry = 0; retry < retry_max; retry++) {
 		if (i2c_transfer(client->adapter, msg, 1) == 1)
 			break;
 		msleep(10);
 	}
 
-	if (retry == toRetry) {
-		E("%s: i2c_write_block retry over %d\n",
-			__func__, toRetry);
+	if (retry == retry_max) {
+		pr_err("[HXTP] %s: write reg 0x%x failed, by %pS\n",
+			__func__, (u32)command, __builtin_return_address(0));
 		return -EIO;
 	}
 	return 0;
-
 }
 
-int i2c_himax_read_command(struct i2c_client *client, uint8_t length, uint8_t *data, uint8_t *readlength, uint8_t toRetry)
+int i2c_himax_read_command(struct i2c_client *client, uint8_t length, uint8_t *data, uint8_t *readlength, uint8_t retry_max)
 {
 	int retry;
 	struct i2c_msg msg[] = {
@@ -104,25 +100,24 @@ int i2c_himax_read_command(struct i2c_client *client, uint8_t length, uint8_t *d
 		}
 	};
 
-	for (retry = 0; retry < toRetry; retry++) {
+	for (retry = 0; retry < retry_max; retry++) {
 		if (i2c_transfer(client->adapter, msg, 1) == 1)
 			break;
 		msleep(10);
 	}
-	if (retry == toRetry) {
-		E("%s: i2c_read_block retry over %d\n",
-		       __func__, toRetry);
+	if (retry == retry_max) {
+ 		pr_err("[HXTP] %s: read reg failed\n", __func__);
 		return -EIO;
 	}
 	return 0;
 }
 
-int i2c_himax_write_command(struct i2c_client *client, uint8_t command, uint8_t toRetry)
+int i2c_himax_write_command(struct i2c_client *client, uint8_t command, uint8_t retry_max)
 {
-	return i2c_himax_write(client, command, NULL, 0, toRetry);
+	return i2c_himax_write(client, command, NULL, 0, retry_max);
 }
 
-int i2c_himax_master_write(struct i2c_client *client, uint8_t *data, uint8_t length, uint8_t toRetry)
+int i2c_himax_master_write(struct i2c_client *client, uint8_t *data, uint8_t length, uint8_t retry_max)
 {
 	int retry/*, loop_i*/;
 	uint8_t buf[length];
@@ -138,15 +133,15 @@ int i2c_himax_master_write(struct i2c_client *client, uint8_t *data, uint8_t len
 
 	memcpy(buf, data, length);
 	
-	for (retry = 0; retry < toRetry; retry++) {
+	for (retry = 0; retry < retry_max; retry++) {
 		if (i2c_transfer(client->adapter, msg, 1) == 1)
 			break;
 		msleep(10);
 	}
 
-	if (retry == toRetry) {
+	if (retry == retry_max) {
 		E("%s: i2c_write_block retry over %d\n",
-		       __func__, toRetry);
+		       __func__, retry_max);
 		return -EIO;
 	}
 	return 0;
@@ -161,7 +156,7 @@ void himax_int_enable(int irqnum, int enable)
 		disable_irq_nosync(irqnum);
 		irq_enable_count--;
 	}
-	I("irq_enable_count = %d, enable = %d\n", irq_enable_count, enable);
+	//I("irq_enable_count = %d, enable = %d\n", irq_enable_count, enable);
 }
 
 void himax_rst_gpio_set(int pinnum, uint8_t value)
@@ -454,6 +449,7 @@ int himax_gpio_power_config(struct i2c_client *client,struct himax_i2c_platform_
 			goto free_power_gpio;
 		}
 	}
+	msleep(20);
 
 	pdata->vcc_i2c = regulator_get(&client->dev, "vcc_i2c");
 	if (IS_ERR(pdata->vcc_i2c)) {
@@ -474,6 +470,7 @@ int himax_gpio_power_config(struct i2c_client *client,struct himax_i2c_platform_
 		E("Regulator vcc_i2c enable failed rc=%d\n", error);
 		goto reg_vcc_i2c_put;
 	}
+	msleep(20);
 
 	if (gpio_is_valid(pdata->gpio_reset)) {
 		/* configure touchscreen reset out gpio */
@@ -514,7 +511,3 @@ return error;
 }
 
 #endif
-
-#endif
-
-

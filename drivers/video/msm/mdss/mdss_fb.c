@@ -1136,10 +1136,10 @@ void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl)
 			mfd->bl_level = bkl_lvl;
 		} else {
 			pr_debug("backlight sent to panel :%d\n", temp);
+			pdata->set_backlight(pdata, temp);
 #ifdef CONFIG_L9100_COMMON
 			mxt_update_backlight(temp);
 #endif
-			pdata->set_backlight(pdata, temp);
 			mfd->bl_level = bkl_lvl;
 			mfd->bl_level_scaled = temp;
 			bl_notify_needed = true;
@@ -1207,7 +1207,7 @@ static void mdss_fb_stop_disp_thread(struct msm_fb_data_type *mfd)
 	mfd->disp_thread = NULL;
 }
 
-#if defined(CONFIG_L8910_COMMON)
+#if defined(CONFIG_L8910_COMMON) || defined(CONFIG_L8700_COMMON) || defined(CONFIG_L9100_COMMON)
 static bool boot_mode_charge;
 static int __init mdss_fb_boot_mode(char *opt)
 {
@@ -1259,7 +1259,7 @@ static int mdss_fb_unblank_sub(struct msm_fb_data_type *mfd)
 				msecs_to_jiffies(mfd->idle_time));
 	}
 
-#if defined(CONFIG_L8910_COMMON)
+#if defined(CONFIG_L8910_COMMON) || defined(CONFIG_L8700_COMMON) || defined(CONFIG_L9100_COMMON)
 	if (boot_mode_charge)
 		goto error;
 #endif

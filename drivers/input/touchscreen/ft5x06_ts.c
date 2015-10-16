@@ -188,7 +188,7 @@
 #define PINCTRL_STATE_SUSPEND	"pmx_ts_suspend"
 #define PINCTRL_STATE_RELEASE	"pmx_ts_release"
 
-#define FW_AUTO_UPGRADE	0
+#define FW_AUTO_UPGRADE	1
 
 enum {
 	FT_BLOADER_VERSION_LZ4 = 0,

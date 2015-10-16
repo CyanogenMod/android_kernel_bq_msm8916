@@ -165,6 +165,7 @@ struct arizona {
 	#if defined(CONFIG_FB)
 	struct notifier_block fb_notif;
 	#endif
+	struct arizona_extcon_info *extcon_info;
 #endif
 
 	struct snd_soc_dapm_context *dapm;
