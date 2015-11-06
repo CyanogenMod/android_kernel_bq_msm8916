@@ -57,6 +57,8 @@
 
 #define PA12200001_DRV_NAME	"pa12200001"
 #define DRIVER_VERSION		"1.06"
+#define PA1220_PICMT_CAL_MULT	25
+#define PA1220_PICMT_CAL_DIV	10
 
 #define MISC_DEV_NAME		"alsps_dev"
 #define PS_CAL_FILE_PATH	"/persist/xtalk_cal"
@@ -459,6 +461,9 @@ static int pa12200001_thrd_calibration(struct i2c_client *client)
     return 0;
 }
 
+
+static DEFINE_MUTEX(calibrate_lock);
+
 static int pa12200001_run_calibration(struct i2c_client *client)
 {
     struct pa12200001_data *data = i2c_get_clientdata(client);
@@ -470,7 +475,8 @@ static int pa12200001_run_calibration(struct i2c_client *client)
     unsigned int cal_check_flag = 0;
 
     pr_debug("START proximity sensor calibration\n");
-
+	
+	mutex_lock(&calibrate_lock);
 RECALIBRATION:
 	/* Prevent Interrupt */
 	ret = i2c_write_reg(client, REG_PS_TH, 0xFF);
@@ -522,6 +528,7 @@ RECALIBRATION:
 			ret = i2c_write_reg(client, REG_PS_OFFSET, data->crosstalk);
 			ret = i2c_write_reg(client, REG_PS_TH, PA12_PS_TH_HIGH);
 			ret = i2c_write_reg(client, REG_PS_TL, PA12_PS_TH_LOW);
+			mutex_unlock(&calibrate_lock);
             return -EINVAL;
         }
     }
@@ -568,12 +575,14 @@ CROSSTALK_BASE_RECALIBRATION:
     if(pa12200001_write_file(PS_CAL_FILE_PATH,buftemp)<0) {
         pr_err("Open PS x-talk calibration file error!!");
         data->cal_result = -2;
+		mutex_unlock(&calibrate_lock);
 		return -EFAULT;
     } else {
         pr_debug("Open PS x-talk calibration file Success!!");
     }
 
     data->cal_result = 0;
+	mutex_unlock(&calibrate_lock);
     return data->crosstalk;
 }
 
@@ -717,6 +726,7 @@ static int pa12200001_get_lux_value(struct i2c_client *client)
         pa12200001_adjust_als_threshold(client,als_adc); //Dynamic Threshold
 
     lux = (als_adc * pa12200001_range[range]) >> 10;
+	lux = lux * PA1220_PICMT_CAL_MULT / PA1220_PICMT_CAL_DIV; // Calibration for PICMT 
     return lux;
 }
 #endif
