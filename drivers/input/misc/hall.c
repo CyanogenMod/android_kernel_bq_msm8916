@@ -17,8 +17,8 @@
 #include <linux/fb.h>
 
 /*add by Wenke Ma, for hall switch key code*/
-#define KEY_HALL_OPEN                0x222
-#define KEY_HALL_CLOSE               0x223
+#define KEY_HALL_OPEN                143
+#define KEY_HALL_CLOSE               142
 
 #define GPIO_HALL_EINT_PIN 114
 #define CONFIG_HALL_SYS
