@@ -226,14 +226,16 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 				pr_err("ERROR ! af:macro_code:%d,inf_code:%d\n", macro_code,inf_code);
 				return ;
 			}
-			if(macro_code> 1023 - OTP_ADJUST_MAC)
+			if(macro_code> 1023 - macro_adj_otp)
 			{
-				macro_code = 1023 - OTP_ADJUST_MAC;
+				macro_code = 1023 - macro_adj_otp;
 			}
-			pos_value = (next_lens_position*((macro_code+OTP_ADJUST_MAC)-(inf_code-OTP_ADJUST_INF))/1024+(inf_code-OTP_ADJUST_INF));
-			CDBG("af:pos_value:%d, next_lens_position:%d,macro_code:%d,inf_code:%d\n",\
+			pos_value = (next_lens_position*((macro_code+macro_adj_otp)-(inf_code-inf_adj_otp))/1024+(inf_code-inf_adj_otp));
+			CDBG("--GPG-- af:pos_value:%d, next_lens_position:%d,macro_code:%d,inf_code:%d\n",\
 						pos_value, next_lens_position,macro_code,inf_code);
-									
+			CDBG("--GPG-- af:inf_adj_otp:%d, macro_code:%d\n",\
+						inf_adj_otp, macro_code);
+					
 			value = (pos_value <<
 				write_arr[i].data_shift) |
 				((hw_dword & write_arr[i].hw_mask) >>
@@ -241,10 +243,8 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 			if (write_arr[i].reg_addr != 0xFFFF) {
 				i2c_byte1 = write_arr[i].reg_addr;
 				i2c_byte2 = value;
-				CDBG("--zhangyu1--byte1:0x%x, byte2:0x%x, next_lens_position:%d\n",i2c_byte1, i2c_byte2,next_lens_position);
 				if (size != (i+1)) {
 					i2c_byte2 = (value & 0xFF00) >> 8;
-					CDBG("--zhangyu2--byte1:0x%x, byte2:0x%x, next_lens_position:%d\n",i2c_byte1, i2c_byte2,next_lens_position);
 					i2c_tbl[a_ctrl->i2c_tbl_index].
 						reg_addr = i2c_byte1;
 					i2c_tbl[a_ctrl->i2c_tbl_index].    
@@ -256,6 +256,7 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 					i2c_byte1 = write_arr[i].reg_addr;
 					i2c_byte2 = value & 0xFF;
 				}
+				CDBG("--GPG--byte1:0x%x, byte2:0x%x, value:%d\n",i2c_byte1, i2c_byte2,value);
 			} else {
 				i2c_byte1 = (value & 0xFF00) >> 8;
 				i2c_byte2 = value & 0xFF;

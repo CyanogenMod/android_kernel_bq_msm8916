@@ -90,7 +90,11 @@ static void mdss_dsi_panel_bklt_pwm(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	pr_debug("%s: ndx=%d level=%d duty=%d\n", __func__,
 					ctrl->ndx, level, duty);
 
+#if defined(CONFIG_L8700_COMMON)
+	if (level == 10) {
+#else
 	if (ctrl->pwm_period >= USEC_PER_SEC) {
+#endif
 		ret = pwm_config_us(ctrl->pwm_bl, duty, ctrl->pwm_period);
 		if (ret) {
 			pr_err("%s: pwm_config_us() failed err=%d.\n",

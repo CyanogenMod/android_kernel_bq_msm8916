@@ -255,7 +255,11 @@
 #define FG_RESET_THRESHOLD_MV		15
 #define SMB1360_REV_1			0x01
 
+#ifdef CONFIG_L8910_COMMON
+#define SMB1360_POWERON_DELAY_MS	5000
+#else
 #define SMB1360_POWERON_DELAY_MS	2000
+#endif
 #define SMB1360_FG_RESET_DELAY_MS	1500
 
 enum {
@@ -427,6 +431,8 @@ struct smb1360_chip {
 	int				otp_hot_bat_decidegc;
 	u8				hard_jeita_otp_reg;
 };
+
+static int BatteryTestStatus_enable = 0;
 
 static int chg_time[] = {
 	192,
@@ -1373,7 +1379,7 @@ static int smb1360_set_appropriate_usb_current(struct smb1360_chip *chip)
 		return 0;
 	}
 
-	if (chip->therm_lvl_sel > 0
+	if (!BatteryTestStatus_enable && chip->therm_lvl_sel > 0
 			&& chip->therm_lvl_sel < (chip->thermal_levels - 1))
 		/*
 		 * consider thermal limit only when it is active and not at
@@ -1768,7 +1774,6 @@ static int smb1360_battery_is_writeable(struct power_supply *psy,
 	return rc;
 }
 /*lct.mshuai modify 2015-01-08*/
-static int BatteryTestStatus_enable = 0;
 
 static ssize_t smb1360_battery_test_status_show(struct device *dev,
 					struct device_attribute *attr, char *buf)
@@ -1800,6 +1805,29 @@ static ssize_t smb1360_battery_test_status_store(struct device *dev,
 
 exit:
 	return retval;
+}
+
+static int charging_timeout_status = 0;
+static ssize_t smb1360_charging_timeout_ctrl_show(struct device *dev,
+					struct device_attribute *attr, char *buf)
+{
+        int rc;
+        struct i2c_client *client = to_i2c_client(dev);
+        struct smb1360_chip *chip = i2c_get_clientdata(client);
+
+        charging_timeout_status = 1;
+        printk("charging_timeout_status = %d \n", charging_timeout_status);
+
+	/* safety timer disabled */
+	rc = smb1360_masked_write(chip, CFG_SFY_TIMER_CTRL_REG,
+			SAFETY_TIME_DISABLE_BIT, SAFETY_TIME_DISABLE_BIT);
+	if (rc < 0)
+		printk("Disable safety timer by manual failed\n");
+	else {
+		printk("Disable safety timer by manual sucess\n");
+	}
+
+	return sprintf(buf, "%d\n", charging_timeout_status);
 }
 
 #define DEFAULT_TEMP		250
@@ -1914,6 +1942,9 @@ static struct device_attribute attrs[] = {
 			NULL),
 	__ATTR(pmic_thermal_temp, S_IRUGO | S_IWUSR | S_IWGRP,
 			smb1360_battery_pmic_thermal_temp,
+			NULL),
+	 __ATTR(charging_timeout_ctrl, S_IRUGO | S_IWUSR | S_IWGRP,
+			smb1360_charging_timeout_ctrl_show,
 			NULL),
 };
 
@@ -2456,7 +2487,7 @@ static int usbin_uv_handler(struct smb1360_chip *chip, u8 rt_stat)
 {
 	bool usb_present = !rt_stat;
 
-	pr_debug("chip->usb_present = %d usb_present = %d\n",
+	pr_err("chip->usb_present = %d usb_present = %d\n",
 				chip->usb_present, usb_present);
 	if (chip->usb_present && !usb_present) {
 		/* USB removed */
@@ -5101,14 +5132,14 @@ static int smb1360_probe(struct i2c_client *client,
 	chip->batt_psy.external_power_changed = smb1360_external_power_changed;
 	chip->batt_psy.property_is_writeable = smb1360_battery_is_writeable;
 
-    /*lct.mshuai modify @20150108*/
-    rc = sysfs_create_file(&chip->client->dev.kobj,
-				&attrs[0].attr);
+	/*lct.mshuai modify @20150108*/
+	rc = sysfs_create_file(&chip->client->dev.kobj,
+							&attrs[0].attr);
 	if (rc < 0) {
 		dev_err(&chip->client->dev,
 				"%s: Failed to create sysfs attributes\n",
 				__func__);
-        sysfs_remove_file(&chip->client->dev.kobj,
+		sysfs_remove_file(&chip->client->dev.kobj,
 				&attrs[0].attr);
 	}
 	if (chip->lct_use_board_temp)
@@ -5127,12 +5158,21 @@ static int smb1360_probe(struct i2c_client *client,
 					&attrs[2].attr);
 		if (rc < 0) {
 			dev_err(&chip->client->dev,
-					"%s: Failed to create sysfs attributes 1\n",
+					"%s: Failed to create sysfs attributes 2\n",
 					__func__);
 	        sysfs_remove_file(&chip->client->dev.kobj,
 					&attrs[2].attr);
 		}
 	}
+	rc = sysfs_create_file(&chip->client->dev.kobj,
+							&attrs[3].attr);
+        if (rc < 0) {
+                dev_err(&chip->client->dev,
+                                "%s: Failed to create sysfs attributes 3\n",
+                                __func__);
+                sysfs_remove_file(&chip->client->dev.kobj,
+                                &attrs[3].attr);
+        }
     /*lct.mshuai modify @20150108*/
 
 	rc = power_supply_register(chip->dev, &chip->batt_psy);
@@ -5316,17 +5356,19 @@ static int smb1360_remove(struct i2c_client *client)
 	mutex_destroy(&chip->otp_gain_lock);
 	mutex_destroy(&chip->fg_access_request_lock);
 	debugfs_remove_recursive(chip->debug_root);
-    /*add by lct.mshuai @20150108*/
-    sysfs_remove_file(&chip->client->dev.kobj,
-				&attrs[0].attr);
+	/*add by lct.mshuai @20150108*/
+	sysfs_remove_file(&chip->client->dev.kobj,
+						&attrs[3].attr);
 	if (chip->lct_use_board_temp)
 	{
 		sysfs_remove_file(&chip->client->dev.kobj,
 					&attrs[2].attr);
 		sysfs_remove_file(&chip->client->dev.kobj,
-					&attrs[2].attr);
+					&attrs[1].attr);
 	}
-    /*add by lct.mshuai @20150108*/
+        sysfs_remove_file(&chip->client->dev.kobj,
+                                                &attrs[0].attr);
+	/*add by lct.mshuai @20150108*/
 	return 0;
 }
 
@@ -5405,6 +5447,8 @@ static int smb1360_resume(struct device *dev)
 	} else {
 		mutex_unlock(&chip->irq_complete);
 	}
+
+	power_supply_changed(&chip->batt_psy);
 
 	return 0;
 }

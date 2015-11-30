@@ -131,6 +131,9 @@ static struct snd_soc_dai_driver msm8x16_wcd_i2s_dai[];
 
 #define MSM8X16_WCD_RELEASE_LOCK(x) mutex_unlock(&x);
 
+#if defined(CONFIG_SPEAKER_EXT_PA)
+static int external_spk_control = 1;
+#endif
 
 /* Codec supports 2 IIR filters */
 enum {
@@ -208,6 +211,9 @@ static void msm8x16_wcd_set_auto_zeroing(struct snd_soc_codec *codec,
 		bool enable);
 
 struct msm8x16_wcd_spmi msm8x16_wcd_modules[MAX_MSM8X16_WCD_DEVICE];
+#if defined(CONFIG_SPEAKER_EXT_PA)
+int msm8x16_spk_ext_pa_ctrl(struct msm8916_asoc_mach_data *pdatadata, bool value);
+#endif
 
 static void *modem_state_notifier;
 
@@ -1391,6 +1397,35 @@ static int msm8x16_wcd_ext_spk_boost_set(struct snd_kcontrol *kcontrol,
 		__func__, msm8x16_wcd->spk_boost_set);
 	return 0;
 }
+
+#if defined(CONFIG_SPEAKER_EXT_PA)
+static int get_external_spk_pa(struct snd_kcontrol *kcontrol,
+		       struct snd_ctl_elem_value *ucontrol)
+{
+	pr_debug("At %d In (%s),external_spk_control=%d\n",__LINE__, __FUNCTION__,external_spk_control);
+	ucontrol->value.integer.value[0] = external_spk_control;
+	return 0;
+}
+
+static int set_external_spk_pa(struct snd_kcontrol *kcontrol,
+		       struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+
+	struct msm8916_asoc_mach_data *pdata = NULL;
+	pdata = snd_soc_card_get_drvdata(codec->card);
+
+	pr_debug("At %d In (%s),external_spk_control=%d,value.integer.value[0]=%ld\n",__LINE__, __FUNCTION__,external_spk_control,ucontrol->value.integer.value[0]);
+	if (external_spk_control == ucontrol->value.integer.value[0])
+		return 0;
+
+	external_spk_control = ucontrol->value.integer.value[0];
+
+	msm8x16_spk_ext_pa_ctrl(pdata, external_spk_control);
+	return 1;
+}
+#endif
+
 static int msm8x16_wcd_get_iir_enable_audio_mixer(
 					struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
@@ -1614,9 +1649,19 @@ static const struct soc_enum msm8x16_wcd_boost_option_ctl_enum[] = {
 };
 static const char * const msm8x16_wcd_spk_boost_ctrl_text[] = {
 		"DISABLE", "ENABLE"};
+
 static const struct soc_enum msm8x16_wcd_spk_boost_ctl_enum[] = {
 		SOC_ENUM_SINGLE_EXT(2, msm8x16_wcd_spk_boost_ctrl_text),
 };
+
+#if defined(CONFIG_SPEAKER_EXT_PA)
+static const char * const msm8x16_external_spk_pa_text[] = {
+		"OFF", "ON"};
+
+static const struct soc_enum msm8x16_external_spk_pa_enum[] = {
+		SOC_ENUM_SINGLE_EXT(2, msm8x16_external_spk_pa_text),
+};
+#endif
 
 static const char * const msm8x16_wcd_ext_spk_boost_ctrl_text[] = {
 		"DISABLE", "ENABLE"};
@@ -1657,6 +1702,11 @@ static const struct snd_kcontrol_new msm8x16_wcd_snd_controls[] = {
 
 	SOC_ENUM_EXT("Speaker Boost", msm8x16_wcd_spk_boost_ctl_enum[0],
 		msm8x16_wcd_spk_boost_get, msm8x16_wcd_spk_boost_set),
+
+#if defined(CONFIG_SPEAKER_EXT_PA)
+	SOC_ENUM_EXT("Speaker PA Open", msm8x16_external_spk_pa_enum[0],
+		get_external_spk_pa, set_external_spk_pa),
+#endif
 
 	SOC_ENUM_EXT("Ext Spk Boost", msm8x16_wcd_ext_spk_boost_ctl_enum[0],
 		msm8x16_wcd_ext_spk_boost_get, msm8x16_wcd_ext_spk_boost_set),
