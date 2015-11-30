@@ -791,14 +791,18 @@ pwr_off_fail:
 	return err;
 }
 
+static bool usb_online = false;
 static int ft5x06_ts_resume(struct device *dev)
 {
 	struct ft5x06_ts_data *data = dev_get_drvdata(dev);
 	int err;
 
 #ifdef CONFIG_FTS_GESTURE
-	if(ft5x06_gesture_close_export()==1)
+	if(ft5x06_gesture_close_export()==1) {
+		if (usb_online)
+			ft5x0x_write_reg(data->client,FT_REG_FREQ_HOP,0x01);
 		return 0;
+	}
 #endif
 
 	if (!data->suspended) {
@@ -832,6 +836,9 @@ static int ft5x06_ts_resume(struct device *dev)
 	}
 
 	msleep(data->pdata->soft_rst_dly);
+
+	if (usb_online)
+		ft5x0x_write_reg(data->client,FT_REG_FREQ_HOP,0x01);
 
 	enable_irq(data->client->irq);
 
@@ -1780,6 +1787,7 @@ void ft5x06_usbdetect_on(struct work_struct *w)
 		ft5x0x_write_reg(data->client,FT_REG_FREQ_HOP,0x01);
 		printk(KERN_ERR  "%s %d : reg 0x8B hase set to 0x01\n",__func__,__LINE__);
 	}
+	usb_online = true;
 }
 
 void ft5x06_usbdetect_off(struct work_struct *w)
@@ -1793,6 +1801,7 @@ void ft5x06_usbdetect_off(struct work_struct *w)
 		ft5x0x_write_reg(data->client,FT_REG_FREQ_HOP,0x0);
 		printk(KERN_ERR  "%s %d : reg 0x8B hase set to 0x00\n",__func__,__LINE__);
 	}
+	usb_online = false;
 }
 
 #ifdef CONFIG_FTS_GESTURE

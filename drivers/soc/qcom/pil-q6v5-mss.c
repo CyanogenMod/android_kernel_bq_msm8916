@@ -366,6 +366,11 @@ static int pil_mss_driver_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+	/* Probe the MBA mem device if present */
+	ret = of_platform_populate(pdev->dev.of_node, NULL, NULL, &pdev->dev);
+	if (ret)
+		return ret;
+
 	return pil_subsys_init(drv, pdev);
 }
 

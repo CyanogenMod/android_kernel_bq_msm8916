@@ -375,6 +375,7 @@ static int ltr559_ps_enable(struct i2c_client *client, int on)
 	struct ltr559_data *data = i2c_get_clientdata(client);
 	int ret=0;
 	int contr_data;
+	int psval_lo, psval_hi, psdata;
 
 	if (on) {
 		ltr559_set_ps_threshold(client, LTR559_PS_THRES_LOW_0, 0);
@@ -392,9 +393,19 @@ static int ltr559_ps_enable(struct i2c_client *client, int on)
 
 		msleep(WAKEUP_DELAY+20);
 
-		data->ps_state = 1;
-		input_report_abs(data->input_dev_ps, ABS_DISTANCE, data->ps_state);
-		input_sync(data->input_dev_ps);
+		psval_lo = i2c_smbus_read_byte_data(data->client, LTR559_PS_DATA_0);
+		psval_hi = i2c_smbus_read_byte_data(data->client, LTR559_PS_DATA_1);
+		if ((psval_lo>=0) && (psval_hi>=0)) {
+			psdata = ((psval_hi & 7) << 8) | psval_lo;
+			if (psdata >= data->platform_data->prox_threshold)		
+				input_report_abs(data->input_dev_ps, ABS_DISTANCE, 0);
+			else if (psdata <= data->platform_data->prox_hsyteresis_threshold)
+				input_report_abs(data->input_dev_ps, ABS_DISTANCE, 1);
+
+			//input_report_abs(data->input_dev_ps, ABS_DISTANCE, data->ps_state);
+			input_sync(data->input_dev_ps);
+		}
+
 #if defined(CONFIG_L8150_COMMON) || defined(CONFIG_L9100_COMMON)||defined(CONFIG_L8720_COMMON)
 		ltr559_ps_dynamic_caliberate(&data->ps_cdev);
 #endif
@@ -494,7 +505,7 @@ static void ltr559_ps_work_func(struct work_struct *work)
 	struct i2c_client *client=data->client;
 	int als_ps_status;
 	int psval_lo, psval_hi, psdata;
-	static u32 ps_state_last = 1;	// xuke @ 20140828	Far as default.
+	static u32 ps_state_last = 2;	// xuke @ 20140828	Far as default.
 
 	mutex_lock(&data->op_lock);
 
@@ -568,14 +579,14 @@ static void ltr559_ps_work_func(struct work_struct *work)
 				  data->dynamic_noise = psdata;
 				  if(psdata < 100) {
 				  }else if(psdata < 200){
-					  data->platform_data->prox_threshold = psdata+130;
-					  data->platform_data->prox_hsyteresis_threshold = psdata+60;
+					  data->platform_data->prox_threshold = psdata+230;
+					  data->platform_data->prox_hsyteresis_threshold = psdata+180;
 				  }else if(psdata < 500){
-					  data->platform_data->prox_threshold = psdata+150;
-					  data->platform_data->prox_hsyteresis_threshold = psdata+80;
+					  data->platform_data->prox_threshold = psdata+280;
+					  data->platform_data->prox_hsyteresis_threshold = psdata+230;
 				  }else if(psdata < 1500){
-					  data->platform_data->prox_threshold = psdata+300;
-					  data->platform_data->prox_hsyteresis_threshold = psdata+150;
+					  data->platform_data->prox_threshold = psdata+420;
+					  data->platform_data->prox_hsyteresis_threshold = psdata+350;
 				  }else{						
 					  data->platform_data->prox_threshold= 1800;
 					  data->platform_data->prox_hsyteresis_threshold= 1700;
@@ -1118,14 +1129,14 @@ static ssize_t ltr559_ps_dynamic_caliberate(struct sensors_classdev *sensors_cde
 //add end
 
    if(noise < 200){
-	   pdata->prox_threshold = noise+130;
-	   pdata->prox_hsyteresis_threshold = noise+60;
+	   pdata->prox_threshold = noise+230;
+	   pdata->prox_hsyteresis_threshold = noise+180;
    }else if(noise < 500){
-	   pdata->prox_threshold = noise+150;
-	   pdata->prox_hsyteresis_threshold = noise+80;
+	   pdata->prox_threshold = noise+280;
+	   pdata->prox_hsyteresis_threshold = noise+230;
    }else if(noise < 1500){
-	   pdata->prox_threshold = noise+300;
-	   pdata->prox_hsyteresis_threshold = noise+150;
+	   pdata->prox_threshold = noise+420;
+	   pdata->prox_hsyteresis_threshold = noise+350;
    }else{	
 	   pdata->prox_threshold = 1800;
 	   pdata->prox_hsyteresis_threshold = 1700;
@@ -1268,6 +1279,9 @@ static int ltr559_read_ps_value_for_double_tap(void)
 int ltr559_get_ps_value_for_double_tap(void)
 {
 	int tp_double_tap = 1;
+
+	if (!double_tap_data)
+		return 0;
 
 	if (!double_tap_data->ps_open_state) {
 		ltr559_ps_enable(double_tap_data->client,1);

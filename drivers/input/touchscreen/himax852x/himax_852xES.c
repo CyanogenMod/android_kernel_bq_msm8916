@@ -627,7 +627,7 @@ static void himax_touch_information(void)
 	i2c_himax_read(private_ts->client, 0x5A, data, 12, DEFAULT_RETRY_CNT);
 	HX_RX_NUM = data[0];				 // FE(70)
 	HX_TX_NUM = data[1];				 // FE(71)
-	HX_MAX_PT = (data[2] & 0xF0) >> 4; // FE(72)
+	HX_MAX_PT = 5;//(data[2] & 0xF0) >> 4; // FE(72)
 #ifdef HX_EN_SEL_BUTTON
 	HX_BT_NUM = (data[2] & 0x0F); //FE(72)
 #endif
@@ -2007,6 +2007,8 @@ static ssize_t himax_reset_set(struct device *dev,struct device_attribute *attr,
 {
 	if (buf[0] == '1')
 		himax_hw_reset(true, false);
+	else if (buf[0] == '2')
+		himax_hw_reset(false, false);
 	return count;
 }
 static DEVICE_ATTR(reset, (S_IWUSR|S_IRUGO), NULL, himax_reset_set);
@@ -2709,7 +2711,7 @@ static int himax852xes_suspend(struct device *dev)
 	if (ts->pdata->powerOff3V3 && ts->pdata->power)
 		ts->pdata->power(0);
 
-	pr_info("suspend done\n");
+	pr_warn("suspend done\n");
 	
 	return 0;
 }
@@ -2778,7 +2780,7 @@ static int himax852xes_resume(struct device *dev)
 	atomic_set(&ts->suspend_mode, 0);
 
 	himax_int_enable(ts->client->irq,1);
-	pr_info("resume done\n");
+	pr_warn("resume ok\n");
 
 #ifdef HX_CHIP_STATUS_MONITOR
 	HX_CHIP_POLLING_COUNT = 0;
