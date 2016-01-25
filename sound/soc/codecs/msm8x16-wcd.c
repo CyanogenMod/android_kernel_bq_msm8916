@@ -4761,15 +4761,22 @@ static const struct snd_soc_dapm_widget msm8x16_wcd_dapm_widgets[] = {
 		&rx2_mix1_inp1_mux),
 	SND_SOC_DAPM_MUX("RX2 MIX1 INP2", SND_SOC_NOPM, 0, 0,
 		&rx2_mix1_inp2_mux),
+#if defined(CONFIG_L8720_COMMON) || defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
+// None.	xuke @ 20141212	For CODEC WM8998.
+#else
 	SND_SOC_DAPM_MUX("RX2 MIX1 INP3", SND_SOC_NOPM, 0, 0,
 		&rx2_mix1_inp3_mux),
-
+#endif
 	SND_SOC_DAPM_MUX("RX3 MIX1 INP1", SND_SOC_NOPM, 0, 0,
 		&rx3_mix1_inp1_mux),
 	SND_SOC_DAPM_MUX("RX3 MIX1 INP2", SND_SOC_NOPM, 0, 0,
 		&rx3_mix1_inp2_mux),
+#if defined(CONFIG_L8720_COMMON) || defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
+// None.	xuke @ 20141212	For CODEC WM8998.
+#else
 	SND_SOC_DAPM_MUX("RX3 MIX1 INP3", SND_SOC_NOPM, 0, 0,
 		&rx3_mix1_inp3_mux),
+#endif
 
 	SND_SOC_DAPM_MUX("RX1 MIX2 INP1", SND_SOC_NOPM, 0, 0,
 		&rx1_mix2_inp1_mux),
@@ -5379,9 +5386,13 @@ static int msm8x16_wcd_codec_probe(struct snd_soc_codec *codec)
 		kfree(msm8x16_wcd_priv);
 		return -ENOMEM;
 	}
+#if defined(CONFIG_L8720_COMMON) // || defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)	// xuke @ 20141212	For CODEC WM8998.
+	msm8x16_wcd_priv->spkdrv_reg = NULL;
+#else
 	msm8x16_wcd_priv->spkdrv_reg =
 		wcd8x16_wcd_codec_find_regulator(codec->control_data,
 						MSM89XX_VDD_SPKDRV_NAME);
+#endif
 	msm8x16_wcd_priv->pmic_rev = snd_soc_read(codec,
 					MSM8X16_WCD_A_DIGITAL_REVISION1);
 	msm8x16_wcd_priv->codec_version = snd_soc_read(codec,

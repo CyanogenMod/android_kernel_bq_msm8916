@@ -219,6 +219,10 @@ struct msm8916_asoc_mach_data {
 	int lb_mode;
 	u8 micbias1_cap_mode;
 	u8 micbias2_cap_mode;
+#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
+	int previous_bias_level;
+	int fll_out;
+#endif
 	atomic_t mclk_rsc_ref;
 	atomic_t mclk_enabled;
 	atomic_t wsa_mclk_rsc_ref;
