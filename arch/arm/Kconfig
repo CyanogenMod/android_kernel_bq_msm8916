@@ -1566,7 +1566,6 @@ config SMP_ON_UP
 
 	  If you don't know what to do here, say Y.
 
-
 config SPEAKER_EXT_PA
     default n
     bool "Speaker external PA"
