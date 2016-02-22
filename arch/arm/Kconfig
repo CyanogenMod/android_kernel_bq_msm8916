@@ -1398,6 +1398,18 @@ config PERFMAP
         help
           Perfmap: memory mapped interface for performance monitors.
 
+	
+config L9101_COMMON
+    default n
+    bool "Longcheer L8700 board"
+    help
+        Support for the L9100 longcheer board.
+	  
+config L9101_MRS_A33
+    default n
+    bool "Longcheer L8720 board"
+    help
+        Support for the L9100 longcheer board.
 endmenu
 
 source "arch/arm/common/Kconfig"
