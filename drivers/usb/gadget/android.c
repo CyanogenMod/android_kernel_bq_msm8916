@@ -1775,8 +1775,28 @@ static int serial_function_bind_config(struct android_usb_function *f,
 	char *name, *xport_name = NULL;
 	char buf[32], *b, xport_name_buf[32], *tb;
 	int err = -1, i;
-	static int serial_initialized = 0, ports = 0;
+	static int serial_initialized = 0, ports = 0, org_ports = 0;
 	struct serial_function_config *config = f->config;
+	
+	struct android_dev *dev = cdev_to_android_dev(c->cdev);
+	struct android_configuration *conf;
+	struct android_usb_function_holder *f_holder;
+	char   usb_function_string[32];
+	char * buff = usb_function_string;
+	
+	list_for_each_entry(conf, &dev->configs, list_item) {
+		list_for_each_entry(f_holder, &conf->enabled_functions, enabled_list) {
+			buff += sprintf(buff, "%s,", f_holder->f->name);	
+			}
+		*(buff-1) = '\n';
+	}
+
+	if(!strncmp(usb_function_string, "ffs,diag,serial,mass_storage", 28) || !strncmp(usb_function_string, "diag,serial,mass_storage", 24)
+		|| !strncmp(usb_function_string, "diag,ffs,serial,mass_storage", 28) || !strncmp(usb_function_string, "diag,serial,rmnet,ffs", 20)
+		|| !strncmp(usb_function_string, "diag,serial,rmnet", 17))
+		ports = org_ports;
+	else
+		ports = 1;
 
 	if (serial_initialized)
 		goto bind_config;
@@ -1784,13 +1804,14 @@ static int serial_function_bind_config(struct android_usb_function *f,
 	serial_initialized = 1;
 	strlcpy(buf, serial_transports, sizeof(buf));
 	b = strim(buf);
+	pr_info("serial transports name is %s \n", buf);
 
 	strlcpy(xport_name_buf, serial_xport_names, sizeof(xport_name_buf));
 	tb = strim(xport_name_buf);
 
 	while (b) {
 		name = strsep(&b, ",");
-
+		pr_info("serial transports name is %s \n", name);
 		if (name) {
 			if (tb)
 				xport_name = strsep(&tb, ",");
@@ -1824,9 +1845,10 @@ static int serial_function_bind_config(struct android_usb_function *f,
 			goto err_gser_usb_get_function;
 		}
 	}
-	config->instances_on = ports;
+	org_ports = ports;
 
 bind_config:
+	config->instances_on = ports;
 	for (i = 0; i < ports; i++) {
 		err = usb_add_function(c, config->f_serial[i]);
 		if (err) {
@@ -2422,7 +2444,25 @@ static int mass_storage_function_init(struct android_usb_function *f,
 		pr_err("Memory allocation failed.\n");
 		return -ENOMEM;
 	}
+#ifdef CONFIG_ONLY_BICR_SUPPORT
+	config->fsg.nluns = 0;
 
+	if (dev->pdata && dev->pdata->cdrom) {
+		config->fsg.luns[config->fsg.nluns].cdrom = 1;
+		config->fsg.luns[config->fsg.nluns].ro = 1;
+		config->fsg.luns[config->fsg.nluns].removable = 0;
+		config->fsg.luns[config->fsg.nluns].nofua = 1;
+		snprintf(name[config->fsg.nluns], MAX_LUN_NAME, "rom");
+		config->fsg.nluns++;
+	}
+
+	config->fsg.luns[config->fsg.nluns].cdrom = 0;
+	config->fsg.luns[config->fsg.nluns].ro = 0;
+	config->fsg.luns[config->fsg.nluns].removable = 1;
+	config->fsg.luns[config->fsg.nluns].nofua = 1;
+	snprintf(name[config->fsg.nluns], MAX_LUN_NAME, "lun");
+	config->fsg.nluns++;
+#else
 	config->fsg.nluns = 1;
 	snprintf(name[0], MAX_LUN_NAME, "lun");
 	config->fsg.luns[0].removable = 1;
@@ -2434,7 +2474,7 @@ static int mass_storage_function_init(struct android_usb_function *f,
 		snprintf(name[config->fsg.nluns], MAX_LUN_NAME, "rom");
 		config->fsg.nluns++;
 	}
-
+#endif
 	if (uicc_nluns > FSG_MAX_LUNS - config->fsg.nluns) {
 		uicc_nluns = FSG_MAX_LUNS - config->fsg.nluns;
 		pr_debug("limiting uicc luns to %d\n", uicc_nluns);
@@ -2533,7 +2573,28 @@ static void mass_storage_function_enable(struct android_usb_function *f)
 	int number_of_luns = 0;
 	char buf1[5];
 	char *lun_name = buf1;
-	static int msc_initialized;
+	static int msc_initialized = 0, init_common_nluns = 0;
+
+	struct android_dev *dev = cdev_to_android_dev(cdev);
+	struct android_configuration *conf;
+	struct android_usb_function_holder *f_holder;
+	int	   functions_no=0;
+	char   usb_function_string[32];
+	char * buff = usb_function_string;
+	
+	list_for_each_entry(conf, &dev->configs, list_item) {
+		list_for_each_entry(f_holder, &conf->enabled_functions, enabled_list) {
+			functions_no++;
+			buff += sprintf(buff, "%s,", f_holder->f->name);	
+			}
+		*(buff-1) = '\n';
+	}
+	init_common_nluns = config->fsg.nluns;
+
+	if(!strncmp(usb_function_string, "mtp,mass_storage,ffs", 20) || !strncmp(usb_function_string, "mtp,mass_storage", 16))
+		common->nluns  = 1;
+    else
+		common->nluns = init_common_nluns;
 
 	if (msc_initialized)
 		return;
@@ -2553,6 +2614,8 @@ static void mass_storage_function_enable(struct android_usb_function *f)
 					return;
 		}
 	} else {
+		init_common_nluns = config->fsg.nluns;
+
 		pr_debug("No extra msc lun required.\n");
 		return;
 	}
@@ -2573,7 +2636,8 @@ static void mass_storage_function_enable(struct android_usb_function *f)
 			pr_err("sysfs file creation failed: lun%d err:%d\n",
 							(i-prev_nluns), err);
 	}
-
+	
+	init_common_nluns = common->nluns;
 	msc_initialized = 1;
 }
 
@@ -2632,9 +2696,51 @@ static DEVICE_ATTR(luns, S_IRUGO | S_IWUSR,
 				mass_storage_lun_info_show,
 				mass_storage_lun_info_store);
 
+#ifdef CONFIG_ONLY_BICR_SUPPORT
+static ssize_t mass_storage_bicr_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct android_usb_function *f = dev_get_drvdata(dev);
+	struct mass_storage_function_config *config = f->config;
+	return sprintf(buf, "%d\n", config->common->bicr);
+}
+
+static ssize_t mass_storage_bicr_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct android_usb_function *f = dev_get_drvdata(dev);
+	struct mass_storage_function_config *config = f->config;
+	if (size >= sizeof(config->common->bicr))
+		return -EINVAL;
+	if (sscanf(buf, "%d", &config->common->bicr) != 1)
+		return -EINVAL;
+#if 0
+		/* Set Lun[0] is a CDROM when enable bicr.*/
+	if (!strcmp(buf, "1"))
+		config->common->luns[0].cdrom = 1;
+	else {		
+		/*Reset the value. Clean the cdrom's parameters*/
+		config->common->luns[0].cdrom = 0;
+		config->common->luns[0].blkbits = 0;
+		config->common->luns[0].blksize = 0;
+		config->common->luns[0].num_sectors = 0;
+	}
+#endif
+	return size;
+}
+
+static DEVICE_ATTR(bicr, S_IRUGO | S_IWUSR,
+					mass_storage_bicr_show,
+					mass_storage_bicr_store);
+
+#endif
+
 static struct device_attribute *mass_storage_function_attributes[] = {
 	&dev_attr_inquiry_string,
 	&dev_attr_luns,
+#ifdef CONFIG_ONLY_BICR_SUPPORT
+	&dev_attr_bicr,
+#endif
 	NULL
 };
 
