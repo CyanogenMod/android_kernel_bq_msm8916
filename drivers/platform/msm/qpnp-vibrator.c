@@ -66,6 +66,9 @@ struct qpnp_vib {
 	int timeout;
 	struct mutex lock;
 };
+#ifdef CONFIG_TOUCHSCREEN_ATMEL_MXTS
+struct qpnp_vib *whole_vib;
+#endif
 
 struct qpnp_vib *whole_vib;
 
@@ -198,14 +201,13 @@ static void qpnp_vib_enable(struct timed_output_dev *dev, int value)
 	mutex_unlock(&vib->lock);
 	schedule_work(&vib->work);
 }
-
+#ifdef CONFIG_TOUCHSCREEN_ATMEL_MXTS
 void qpnp_kernel_vib_enable(int value)
 {
        qpnp_vib_enable(&(whole_vib->timed_dev),value);
 }
-
 EXPORT_SYMBOL(qpnp_kernel_vib_enable);
-
+#endif
 static void qpnp_vib_update(struct work_struct *work)
 {
 	struct qpnp_vib *vib = container_of(work, struct qpnp_vib,
@@ -380,9 +382,9 @@ static int qpnp_vibrator_probe(struct spmi_device *spmi)
 	rc = timed_output_dev_register(&vib->timed_dev);
 	if (rc < 0)
 		return rc;
-
+#ifdef CONFIG_TOUCHSCREEN_ATMEL_MXTS
 	whole_vib=vib;
-
+#endif
 	return rc;
 }
 

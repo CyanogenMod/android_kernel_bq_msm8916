@@ -2438,8 +2438,9 @@ static void mxt_proc_T93_messages(struct mxt_data *data, u8 *msg)
 	/* do not report events if input device not yet registered */
 	if (test_bit(MXT_WK_ENABLE,&data->enable_wakeup)) {
 #ifdef CONFIG_MXT_PROCI_PI_WORKAROUND
-		if (ltr559_get_ps_value_for_double_tap())
-			return;
+		//by removed @20160222
+		//if (ltr559_get_ps_value_for_double_tap())
+		//	return;
 #endif
 		ret = mxt_proc_gesture_messages(data, MXT_PROCI_TOUCHSEQUENCELOGGER_T93,
 			T93_KEY, msg);
@@ -6082,7 +6083,7 @@ static const struct file_operations fts_gesture_proc_fops= {
 #endif
 
 
-#ifdef CONFIG_L9101_COMMON
+#ifdef CONFIG_L9100_COMMON
 static struct mxt_data *g_mxt_data;
 #endif
 
@@ -6115,7 +6116,7 @@ static int  mxt_probe(struct i2c_client *client,
 	data->irq = client->irq;
 	i2c_set_clientdata(client, data);
 
-#ifdef CONFIG_L9101_COMMON
+#ifdef CONFIG_L9100_COMMON
 	g_mxt_data = data;
 #endif
 	mutex_init(&data->bus_access_mutex);
@@ -6429,7 +6430,7 @@ static int mxt_resume(struct device *dev)
 	return 0;
 }
 
-#ifdef CONFIG_L9101_COMMON
+#ifdef CONFIG_L9100_COMMON
 void mxt_update_backlight(u32 bl)
 {
 	int ret;
