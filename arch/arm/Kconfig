@@ -1522,6 +1522,18 @@ config SMP_ON_UP
 
 	  If you don't know what to do here, say Y.
 
+config L8911_COMMON
+    default n
+    bool "Longcheer L8910 board"
+    help
+        Support for the L8910 longcheer board.
+
+config L8911_MRS_A01
+    default n
+    bool "Longcheer L8910 board"
+    help
+        Support for the L8910 longcheer board.
+
 config ARM_CPU_TOPOLOGY
 	bool "Support cpu topology definition"
 	depends on SMP && CPU_V7

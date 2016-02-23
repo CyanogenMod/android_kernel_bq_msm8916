@@ -389,7 +389,7 @@ struct input_keymap_entry {
 #define KEY_ISO			170
 #define KEY_CONFIG		171	/* AL Consumer Control Configuration */
 #define KEY_HOMEPAGE		172	/* AC Home */
-#ifdef CONFIG_TOUCHSCREEN_ATMEL_MXTS
+#if defined CONFIG_TOUCHSCREEN_ATMEL_MXTS || defined CONFIG_TOUCHSCREEN_HIMAX852X
 #define KEY_APP_SWITCH    580   /* Capacitive buttons function */
 #endif
 #define KEY_REFRESH		173	/* AC Refresh */

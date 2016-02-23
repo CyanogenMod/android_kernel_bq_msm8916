@@ -893,5 +893,13 @@ config BMI160_MAG_INTERFACE_SUPPORT
 	 If you say yes here, you get support for Bosch Sensortec's
 	 sensor driver of BMI160 with mag sensor support.
 
+config SENSORS_PA12200001
+	tristate "pa12200001 device driver"
+	depends on I2C
+	help
+		Say Y here you want to enable for the pa12200001
+		light and proximity sensors driver.
+		To compile this driver as a module, choose M here
+
 endif
 
