@@ -127,7 +127,7 @@ struct arizona_micd_range {
 struct arizona_pdata {
 	int reset;      /** GPIO controlling /RESET, if any */
 	int ldoena;     /** GPIO controlling LODENA, if any */
-#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)		// xuke @ 20141031
+#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)
 	int ena_ldo;
 	int ldo_enable;
 	int i2c_addr;

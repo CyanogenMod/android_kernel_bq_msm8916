@@ -1359,7 +1359,7 @@ int msm_audrx_init_wm8998(struct snd_soc_pcm_runtime *rtd)
 	return ret;
 }
 EXPORT_SYMBOL(msm_audrx_init_wm8998);
-//<++++	xuke @ 20150209	Fix the issue that FM would no sound when kernel suspended.
+//Fix the issue that FM would no sound when kernel suspended.
 
 static int wm8998_in1mux_ev(struct snd_soc_dapm_widget *w,
 				struct snd_kcontrol *kcontrol,

@@ -2176,14 +2176,14 @@ static int snd_soc_dapm_set_pin(struct snd_soc_dapm_context *dapm,
 	struct snd_soc_dapm_widget *w = dapm_find_widget(dapm, pin, true);
 
 #if defined(CONFIG_L8720_COMMON) || defined(CONFIG_AUDIO_CODEC_FLORIDA) || defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH) //add CONFIG_AUDIO_CODEC_WM8998_SWITCH only for test
-// None.	xuke @ 20141212	For CODEC WM8998.
+// None.
 #else
 	mutex_lock_nested(&dapm->card->dapm_mutex, SND_SOC_DAPM_CLASS_RUNTIME);
 #endif
 	if (!w) {
 		dev_err(dapm->dev, "ASoC: DAPM unknown pin %s\n", pin);
 #if defined(CONFIG_L8720_COMMON) || defined(CONFIG_AUDIO_CODEC_FLORIDA) || defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
-// None.	xuke @ 20141212	For CODEC WM8998.
+// None.
 #else
 		mutex_unlock(&dapm->card->dapm_mutex);
 #endif
@@ -2198,7 +2198,7 @@ static int snd_soc_dapm_set_pin(struct snd_soc_dapm_context *dapm,
 		w->force = 0;
 
 #if defined(CONFIG_L8720_COMMON) || defined(CONFIG_AUDIO_CODEC_FLORIDA) || defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
-// None.	xuke @ 20141212	For CODEC WM8998.
+// None.
 #else
 	mutex_unlock(&dapm->card->dapm_mutex);
 #endif

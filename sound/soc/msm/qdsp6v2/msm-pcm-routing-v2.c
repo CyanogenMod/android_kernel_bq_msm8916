@@ -5681,7 +5681,7 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"PRI_MI2S_UL_HL", NULL, "PRI_MI2S_TX"},
 	{"SEC_MI2S_RX", NULL, "SEC_MI2S_DL_HL"},
 	{"PRI_MI2S_RX", NULL, "PRI_MI2S_DL_HL"},
-#if 1	// xuke 20141225	Import FM patch.
+#if 1	//Import FM patch.
 	{"QUAT_MI2S_RX_DL_HL", "Switch", "QUAT_MI2S_DL_HL"},
 	{"QUAT_MI2S_RX", NULL, "QUAT_MI2S_DL_HL"},
 #endif
