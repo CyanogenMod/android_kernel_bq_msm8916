@@ -726,15 +726,17 @@ int32_t msm_sensor_driver_probe(void *setting,
 			goto free_slave_info;
 		}
 	}
-	
+
 	pr_info("%s camera eeprom_name=%s\n",__func__, slave_info->eeprom_name);//slave_info is from userspace
 	for(i=0; i<CAMERA_VENDOR_EEPROM_COUNT_MAX; i++){
-		CDBG("dtsi eeprom_name[%d]=%s\n",i,s_vendor_eeprom[i].eeprom_name);//s_vendor_eeprom is from kernel camera dtsi
+		CDBG("dtsi eeprom_name[%d]=%s, module_id=%d\n",i,s_vendor_eeprom[i].eeprom_name, s_vendor_eeprom[i].module_id);//s_vendor_eeprom is from kernel camera dtsi
 		if(strcmp(slave_info->sensor_name,s_vendor_eeprom[i].eeprom_name) == 0){
 			if(((strcmp(slave_info->sensor_name,"imx214_olqba15") == 0) && (s_vendor_eeprom[i].module_id == MID_OFILM))
 				|| ((strcmp(slave_info->sensor_name,"imx214_olqba22") == 0) && (s_vendor_eeprom[i].module_id == MID_OFILM))
-				|| ((strcmp(slave_info->sensor_name,"s5k5e2_olq5f20") == 0) && (s_vendor_eeprom[i].module_id == MID_OFILM))
+				|| ((strcmp(slave_info->sensor_name,"s5k5e2_olq5f24") == 0) && (s_vendor_eeprom[i].module_id == MID_OFILM))
 				|| ((strcmp(slave_info->sensor_name,"imx214_f13n05e") == 0) && (s_vendor_eeprom[i].module_id == MID_SUNNY))
+				|| ((strcmp(slave_info->sensor_name,"imx214_f13n05k") == 0) && (s_vendor_eeprom[i].module_id == MID_SUNNY))
+				|| ((strcmp(slave_info->sensor_name,"s5k5e2_s7b5") == 0) && (s_vendor_eeprom[i].module_id == MID_KINGCOM))
 				){
 				CDBG("module found!probe continue!\n");
 				break;
@@ -746,7 +748,6 @@ int32_t msm_sensor_driver_probe(void *setting,
 		rc = -EFAULT;
 		goto free_slave_info;
 	}
-	
 
 	/* Print slave info */
 	CDBG("camera id %d", slave_info->camera_id);

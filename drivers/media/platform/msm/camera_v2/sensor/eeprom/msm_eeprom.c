@@ -924,7 +924,6 @@ static long msm_eeprom_subdev_fops_ioctl32(struct file *file, unsigned int cmd,
 
 #endif
 
-
 static camera_vendor_module_id imx214_get_otp_vendor_module_id(struct msm_eeprom_ctrl_t *e_ctrl)
 {
 	int pageIndex = 0;
@@ -934,7 +933,7 @@ static camera_vendor_module_id imx214_get_otp_vendor_module_id(struct msm_eeprom
 	uint8_t *buffer = e_ctrl->cal_data.mapdata;
 	bool rc = false;
 
-	for (pageIndex =0;pageIndex<3;pageIndex++)
+	for (pageIndex = 2; pageIndex > -1; pageIndex--)
 	{
 		mid = buffer[1+PageSize*pageIndex];
 		switch(mid){
@@ -975,6 +974,7 @@ static camera_vendor_module_id s5k5e2_get_otp_vendor_module_id(struct msm_eeprom
 			mid = buffer[PageSize*pageIndex + GroupSize*groupIndex];
 			switch(mid){
 				case MID_OFILM:
+				case MID_KINGCOM:
 					flag = buffer[PageSize*pageIndex+GroupSize*groupIndex+(GroupSize-1)];
 					rc = (flag == 0x1) ? true : false;
 					break;
@@ -997,9 +997,11 @@ static uint8_t get_otp_vendor_module_id(struct msm_eeprom_ctrl_t *e_ctrl, const 
 	camera_vendor_module_id module_id=MID_NULL;
 	if((strcmp(eeprom_name, "imx214_olqba15") == 0)
 		|| (strcmp(eeprom_name, "imx214_f13n05e") == 0)
+		|| (strcmp(eeprom_name, "imx214_f13n05k") == 0)
 		|| (strcmp(eeprom_name, "imx214_olqba22") == 0)){
 		module_id = imx214_get_otp_vendor_module_id(e_ctrl);
-	}else if(strcmp(eeprom_name,"s5k5e2_olq5f20") == 0){
+	}else if(strcmp(eeprom_name,"s5k5e2_olq5f24") == 0
+		|| (strcmp(eeprom_name, "s5k5e2_s7b5") == 0)){
 		module_id = s5k5e2_get_otp_vendor_module_id(e_ctrl);
 	}
 	pr_info("%s eeprom_name=%s, module_id=%d\n",__func__,eeprom_name,module_id);
@@ -1007,7 +1009,6 @@ static uint8_t get_otp_vendor_module_id(struct msm_eeprom_ctrl_t *e_ctrl, const 
 
 	return ((uint8_t)module_id);
 }
-
 
 static int msm_eeprom_platform_probe(struct platform_device *pdev)
 {
