@@ -39,7 +39,7 @@
 #include <linux/of_gpio.h>
 #include <linux/sensors.h>
 #include <linux/regulator/consumer.h>
-#if defined(CONFIG_L9101_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 #include <linux/wakelock.h>
 #endif
 
@@ -49,11 +49,6 @@
 #define VENDOR_NAME				"lite-on"
 #define LTR559_SENSOR_NAME		"ltr559als"
 #define DRIVER_VERSION		"1.0"
-
-/* xuke @ 20140922	Correct the sys authority for CTS test.*/
-#if defined(CONFIG_L6140_COMMON) || defined(CONFIG_L6300_COMMON)
-#define SYS_AUTHORITY_FOR_CTS
-#endif
 
 #ifdef SYS_AUTHORITY_FOR_CTS
 #define SYS_AUTHORITY		(S_IRUGO|S_IWUSR|S_IWGRP)
@@ -87,7 +82,7 @@ struct ltr559_data {
 
 	struct delayed_work ps_work;
 	struct delayed_work als_work;
-#if defined(CONFIG_L9101_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 	struct wake_lock ltr559_ps_wakelock;
 #endif
 
@@ -98,7 +93,7 @@ struct ltr559_data {
 
 	u32 ps_state;
 	u32 last_lux;
-#if defined(CONFIG_L8150_COMMON) || defined(CONFIG_L9101_COMMON)||defined(CONFIG_L8720_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 	bool cali_update;
 	u32 dynamic_noise;
 #endif
@@ -139,7 +134,7 @@ static int ltr559_ps_set_enable(struct sensors_classdev *sensors_cdev,
 		unsigned int enable);
 
 
-#if defined(CONFIG_L8150_COMMON) || defined(CONFIG_L9101_COMMON)||defined(CONFIG_L8720_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 static ssize_t ltr559_ps_dynamic_caliberate(struct sensors_classdev *sensors_cdev);			
 #endif
 
@@ -168,21 +163,7 @@ static  struct ltr559_reg reg_tbl[] = {
 				.defval = 0x00,
 				.curval = 0x01,
 		},
-// xuke @ 20140919	Turn up sensor's power.
-#if defined(CONFIG_L6140_COMMON) || defined(CONFIG_L6300_COMMON)
-		{
-				.name = "PS_LED",
-				.addr = 0x82,
-				.defval = 0x7f,
-				.curval = 0x1f,
-		},
-		{
-				.name = "PS_N_PULSES",
-				.addr = 0x83,
-				.defval = 0x01,
-				.curval = 0x0f,
-		},
-#elif defined(CONFIG_L9101_COMMON) //increase the transmission of power for L9100
+if defined(CONFIG_PICCOLO_COMMON) //increase the transmission of power for piccolo
 		{
 				.name = "PS_LED",
 				.addr = 0x82,
@@ -215,7 +196,7 @@ static  struct ltr559_reg reg_tbl[] = {
 				.defval = 0x02,
 				.curval = 0x00,
 		},
-#if defined(CONFIG_L9101_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 		{
 				.name = "ALS_MEAS_RATE",
 				.addr = 0x85,
@@ -327,7 +308,7 @@ static struct sensors_classdev sensors_proximity_cdev = {
 	.sensors_poll_delay = NULL,
 };
 
-#if defined(CONFIG_L8150_COMMON) || defined(CONFIG_L9101_COMMON)||defined(CONFIG_L8720_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 static int ltr559_ps_read(struct i2c_client *client)
 {
 	int psval_lo, psval_hi, psdata;
@@ -406,7 +387,7 @@ static int ltr559_ps_enable(struct i2c_client *client, int on)
 			input_sync(data->input_dev_ps);
 		}
 
-#if defined(CONFIG_L8150_COMMON) || defined(CONFIG_L9101_COMMON)||defined(CONFIG_L8720_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 		ltr559_ps_dynamic_caliberate(&data->ps_cdev);
 #endif
 	} else {
@@ -505,7 +486,7 @@ static void ltr559_ps_work_func(struct work_struct *work)
 	struct i2c_client *client=data->client;
 	int als_ps_status;
 	int psval_lo, psval_hi, psdata;
-	static u32 ps_state_last = 2;	// xuke @ 20140828	Far as default.
+	static u32 ps_state_last = 2;	//Far as default.
 
 	mutex_lock(&data->op_lock);
 
@@ -546,35 +527,7 @@ static void ltr559_ps_work_func(struct work_struct *work)
 		} else if (psdata <= data->platform_data->prox_hsyteresis_threshold){
 			data->ps_state = 1; //far
 			
-#if defined(CONFIG_L8150_COMMON)
-			   if (data->dynamic_noise > 20 && psdata < (data->dynamic_noise - 50) ) {
-				  data->dynamic_noise = psdata;
-				  if(psdata < 50){
-					  data->platform_data->prox_threshold = psdata+37;
-					  data->platform_data->prox_hsyteresis_threshold = psdata+12;
-				  }else if(psdata < 100){
-					  data->platform_data->prox_threshold = psdata+40;
-					  data->platform_data->prox_hsyteresis_threshold = psdata+16;
-				  }else if(psdata < 200){
-					  data->platform_data->prox_threshold = psdata+50;
-					  data->platform_data->prox_hsyteresis_threshold = psdata+30;
-				  }else if(psdata < 400){
-					  data->platform_data->prox_threshold = psdata+100;
-					  data->platform_data->prox_hsyteresis_threshold = psdata+50;
-				  }else if(psdata < 1200){
-					  data->platform_data->prox_threshold = psdata+200;
-					  data->platform_data->prox_hsyteresis_threshold = psdata+100;
-				  }else if(psdata < 1800){
-					  data->platform_data->prox_threshold = psdata+400;
-					  data->platform_data->prox_hsyteresis_threshold = psdata+100;
-				  }else{
-					  data->platform_data->prox_threshold= 2047;
-					  data->platform_data->prox_hsyteresis_threshold= 1800;						
-					  pr_err("ltr559 the proximity sensor rubber or structure is error!\n");
-				  }
-			   }
-#endif
-#if defined(CONFIG_L9101_COMMON)||defined(CONFIG_L8720_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 			   if (data->dynamic_noise > 20 && psdata < (data->dynamic_noise - 50) ) {
 				  data->dynamic_noise = psdata;
 				  if(psdata < 100) {
@@ -613,7 +566,7 @@ static void ltr559_ps_work_func(struct work_struct *work)
 			input_sync(data->input_dev_ps);
 			printk("%s: report ABS_DISTANCE=%s\n",__func__, data->ps_state ? "far" : "near");
 			
-			ps_state_last = data->ps_state; 	// xuke @ 20140828	Report ABS value only if the state changed.
+			ps_state_last = data->ps_state; 	//Report ABS value only if the state changed.
 		}
 		else
 			printk("%s: ps_state still %s\n", __func__, data->ps_state ? "far" : "near");
@@ -975,97 +928,7 @@ static int ltr559_als_poll_delay(struct sensors_classdev *sensors_cdev,
 	return 0;
 }
 
-#if defined(CONFIG_L8150_COMMON)||defined(CONFIG_L8720_COMMON)
-static ssize_t ltr559_ps_dynamic_caliberate(struct sensors_classdev *sensors_cdev)			
-{
-	struct ltr559_data *data = container_of(sensors_cdev, struct ltr559_data, ps_cdev);
-	struct ltr559_platform_data *pdata = data->platform_data;
-	int i=0;
-	int ps;
-	int data_total=0;
-	int noise = 0;
-	int count = 3;
-	int max = 0;
-	
-	if(!data)
-	{
-		pr_err("ltr559_data is null!!\n");
-		return -EFAULT;
-	}
-
-	// wait for register to be stable
-	msleep(15);
-
-	for (i = 0; i < count; i++) {
-		// wait for ps value be stable
-		
-		msleep(15);
-		
-		ps = ltr559_ps_read(data->client);
-		if (ps < 0) {
-			i--;
-			continue;
-		}
-				
-		if(ps & 0x8000){
-			noise = 0;
-			break;
-		} else {
-			noise = ps;
-		}	
-		
-		data_total += ps;
-
-		if (max++ > 10) {
-			pr_err("ltr559 read data error!\n");
-			return -EFAULT;
-		}
-	}
-	
-	noise = data_total/count;
-       data->dynamic_noise = noise;
-
-	if(noise < 50){
-		pdata->prox_threshold = noise+37;
-		pdata->prox_hsyteresis_threshold = noise+12;
-	}else if(noise < 100){
-		pdata->prox_threshold = noise+40;
-		pdata->prox_hsyteresis_threshold = noise+16;
-	}else if(noise < 200){
-		pdata->prox_threshold = noise+50;
-		pdata->prox_hsyteresis_threshold = noise+30;
-	}else if(noise < 400){
-		pdata->prox_threshold = noise+100;
-		pdata->prox_hsyteresis_threshold = noise+50;
-	}else if(noise < 1200){
-		pdata->prox_threshold = noise+200;
-		pdata->prox_hsyteresis_threshold = noise+100;
-	}else if(noise < 1650){
-		pdata->prox_threshold = noise+400;
-		pdata->prox_hsyteresis_threshold = noise+100;
-	}else{	
-		pdata->prox_threshold = 2047;
-		pdata->prox_hsyteresis_threshold = 1800;
-		pr_err("ltr559 the proximity sensor rubber or structure is error!\n");
-		return -EAGAIN;
-	}
-
-	if (data->ps_state == 1) {
-		ltr559_set_ps_threshold(data->client, LTR559_PS_THRES_LOW_0, 0);
-		ltr559_set_ps_threshold(data->client, LTR559_PS_THRES_UP_0, data->platform_data->prox_threshold);
- 	} else if (data->ps_state == 0) {
-		ltr559_set_ps_threshold(data->client, LTR559_PS_THRES_LOW_0, data->platform_data->prox_hsyteresis_threshold);
-		ltr559_set_ps_threshold(data->client, LTR559_PS_THRES_UP_0, 0x07ff);
-	}
-
-	data->cali_update = true;
-	
-	printk("%s : noise = %d , thd_val_low = %d , htd_val_high = %d \n",__func__, noise, pdata->prox_hsyteresis_threshold, pdata->prox_threshold);
-	return 0;
-}
-#endif
-
-#if defined(CONFIG_L9101_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 static ssize_t ltr559_ps_dynamic_caliberate(struct sensors_classdev *sensors_cdev)			
 {
 	struct ltr559_data *data = container_of(sensors_cdev, struct ltr559_data, ps_cdev);
@@ -1178,7 +1041,7 @@ static int ltr559_ps_set_enable(struct sensors_classdev *sensors_cdev,
 		return -EFAULT;
 	}
 
-#if defined(CONFIG_L9101_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 	if (enable == 1) {
 		wake_lock(&data->ltr559_ps_wakelock);
 		irq_set_irq_wake(data->irq, 1);
@@ -1597,7 +1460,7 @@ int ltr559_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto exit_power_off;
 	}
 
-	#if defined(CONFIG_L9101_COMMON)
+	#if defined(CONFIG_PICCOLO_COMMON)
 	i2c_smbus_write_byte_data(client, LTR559_PS_MEAS_RATE, 0x08);
 	#endif
 	/* request gpio and irq */
@@ -1629,7 +1492,7 @@ int ltr559_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	input_set_abs_params(data->input_dev_als, ABS_MISC, 0, 65535, 0, 0);
 	input_set_abs_params(data->input_dev_ps, ABS_DISTANCE, 0, 1, 0, 0);
 
-#if defined (CONFIG_SENSORS_BMM050) || defined(CONFIG_L8150_COMMON)
+#if defined(CONFIG_SENSORS_BMM050)
 	data->input_dev_als->name = "ltr559-ls";
 	data->input_dev_ps->name = "ltr559-ps";
 #else
@@ -1699,10 +1562,10 @@ int ltr559_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto exit_unregister_als_class;
 	}
 	double_tap_data = data;
-#if defined(CONFIG_L9101_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 	wake_lock_init(&data->ltr559_ps_wakelock, WAKE_LOCK_SUSPEND, "ltr559-ps-wakelock");
 #endif
-//lct.panguangyi set enable to trigger calibration at boot
+//set enable to trigger calibration at boot
 	pdata->prox_default_noise=0;
 	ltr559_ps_enable(client,1);
 	ltr559_ps_enable(client,0);
@@ -1763,7 +1626,7 @@ static int ltr559_remove(struct i2c_client *client)
 	input_free_device(data->input_dev_als);
 	input_free_device(data->input_dev_ps);
 
-#if defined(CONFIG_L9101_COMMON)
+#if defined(CONFIG_PICCOLO_COMMON)
 	wake_lock_destroy(&data->ltr559_ps_wakelock);
 #endif
 	ltr559_gpio_irq_free(data);

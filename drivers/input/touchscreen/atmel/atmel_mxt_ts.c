@@ -6082,7 +6082,7 @@ static const struct file_operations fts_gesture_proc_fops= {
 #endif
 
 
-#ifdef CONFIG_L9101_COMMON
+#ifdef CONFIG_PICCOLO_COMMON
 static struct mxt_data *g_mxt_data;
 #endif
 
@@ -6115,7 +6115,7 @@ static int  mxt_probe(struct i2c_client *client,
 	data->irq = client->irq;
 	i2c_set_clientdata(client, data);
 
-#ifdef CONFIG_L9101_COMMON
+#ifdef CONFIG_PICCOLO_COMMON
 	g_mxt_data = data;
 #endif
 	mutex_init(&data->bus_access_mutex);
@@ -6429,7 +6429,7 @@ static int mxt_resume(struct device *dev)
 	return 0;
 }
 
-#ifdef CONFIG_L9101_COMMON
+#ifdef CONFIG_PICCOLO_COMMON
 void mxt_update_backlight(u32 bl)
 {
 	int ret;
