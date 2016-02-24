@@ -1443,13 +1443,13 @@ config LCT_FLORIDA_GPIO_CTRL
 	help
 		Support for Wolfson codec FLORIDA.
 	
-config CONFIG_PICCOLO_COMMON
+config PICCOLO_COMMON
     default n
     bool "Longcheer L8700 board"
     help
         Support for the L9101 longcheer board.
 	  
-config CONFIG_PICMT_COMMON
+config PICMT_COMMON
     default n
     bool "Longcheer L8720 board"
     help

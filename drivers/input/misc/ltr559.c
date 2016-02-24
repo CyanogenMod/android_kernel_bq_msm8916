@@ -163,7 +163,7 @@ static  struct ltr559_reg reg_tbl[] = {
 				.defval = 0x00,
 				.curval = 0x01,
 		},
-if defined(CONFIG_PICCOLO_COMMON) //increase the transmission of power for piccolo
+#if defined(CONFIG_PICCOLO_COMMON) //increase the transmission of power for piccolo
 		{
 				.name = "PS_LED",
 				.addr = 0x82,
