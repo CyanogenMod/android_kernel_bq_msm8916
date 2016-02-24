@@ -31,7 +31,7 @@ static int arizona_spi_probe(struct spi_device *spi)
 	struct arizona *arizona;
 	const struct regmap_config *regmap_config;
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA)
-	const struct regmap_config *regmap_32bit_config = NULL;// yht
+	const struct regmap_config *regmap_32bit_config = NULL;
 #endif
 	int ret;
 	int64_t type;
@@ -69,7 +69,7 @@ static int arizona_spi_probe(struct spi_device *spi)
 			ret);
 		return ret;
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA)
-// yht start
+
 	}
 
 	if (regmap_32bit_config) {
@@ -82,7 +82,7 @@ static int arizona_spi_probe(struct spi_device *spi)
 				ret);
 			return ret;
 		}
-//end
+
 	}
 #endif
 

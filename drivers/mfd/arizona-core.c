@@ -145,7 +145,7 @@ int arizona_dvfs_up(struct arizona *arizona, unsigned int flags)
 		case WM8997:
 		case WM8998:
 		case WM1814:
-#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)		// xuke @ 20141031
+#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)
 #if 1
 			if (gpio_is_valid(arizona->pdata.ena_ldo))
 			{
@@ -746,7 +746,7 @@ static int arizona_runtime_resume(struct device *dev)
 		break;
 	};
 
-#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)		// xuke @ 20141031
+#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)
 	//clk_prepare_enable(arizona->pdata.i2s_mclk);
 #if 0
 	if (gpio_is_valid(arizona->pdata.ldo_enable))
@@ -899,7 +899,7 @@ static int arizona_runtime_resume(struct device *dev)
 err:
 	regcache_cache_only(arizona->regmap, true);
 	regulator_disable(arizona->dcvdd);
-#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)		// xuke @ 20141031
+#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)
 	if (gpio_is_valid(arizona->pdata.ena_ldo))
 	{
 		pr_debug("At %d In (%s),ena_ldo set0\n",__LINE__, __FUNCTION__);
@@ -1000,7 +1000,7 @@ static int arizona_runtime_suspend(struct device *dev)
 	regcache_cache_only(arizona->regmap, true);
 	regcache_mark_dirty(arizona->regmap);
 	regulator_disable(arizona->dcvdd);
-#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)		// xuke @ 20141031
+#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)
 #if 1
 if (gpio_is_valid(arizona->pdata.ena_ldo))
 {
@@ -1359,27 +1359,27 @@ static int arizona_of_get_core_pdata(struct arizona *arizona)
 	int i;
 
 	memset(&out_mono, 0, sizeof(out_mono));
-	pr_debug("At %d In (%s), get data form dtsi\n",__LINE__, __FUNCTION__);//yht
+	pr_debug("At %d In (%s), get data form dtsi\n",__LINE__, __FUNCTION__);
 	
 
-	pdata->reset = arizona_of_get_named_gpio(arizona, "wlf,reset", true); //yht
-	pdata->ldo_enable = arizona_of_get_named_gpio(arizona, "wlf,ldo-enable", true);//yht
-	pdata->ldo_spk = arizona_of_get_named_gpio(arizona, "wlf,ldospk", true);//yht,0120
+	pdata->reset = arizona_of_get_named_gpio(arizona, "wlf,reset", true); 
+	pdata->ldo_enable = arizona_of_get_named_gpio(arizona, "wlf,ldo-enable", true);
+	pdata->ldo_spk = arizona_of_get_named_gpio(arizona, "wlf,ldospk", true);
 
 	pdata->ldoena = arizona_of_get_named_gpio(arizona, "wlf,ldoena", true);
-	pdata->irq_gpio = arizona_of_get_named_gpio(arizona, "wlf,irq_gpio", true);//yht,0122
+	pdata->irq_gpio = arizona_of_get_named_gpio(arizona, "wlf,irq_gpio", true);
 
 //	pr_debug("At %d In (%s), reset=%d, ldo_enable=%d ldoena=%d\n",__LINE__, __FUNCTION__, 
-//		pdata->reset,  pdata->ldo_enable, pdata->ldoena);// yht get the first two GPIO number
+//		pdata->reset,  pdata->ldo_enable, pdata->ldoena);
 	pr_debug("At %d In (%s), reset=%d, ldo_enable=%d ldoena=%d,ldo_spk=%d\n",__LINE__, __FUNCTION__, 
-		pdata->reset,  pdata->ldo_enable, pdata->ldoena,pdata->ldo_spk);// yht,0120
+		pdata->reset,  pdata->ldo_enable, pdata->ldoena,pdata->ldo_spk);
 #else
 	int i; // , ret = 0;
 
 	memset(&out_mono, 0, sizeof(out_mono));
 
 	pdata->reset = arizona_of_get_named_gpio(arizona, "wlf,reset", true);
-#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)		// xuke @ 20141031
+#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)
 	pdata->ena_ldo = arizona_of_get_named_gpio(arizona, "wlf,ena-ldo", true);
 	pdata->ldo_enable = arizona_of_get_named_gpio(arizona, "wlf,ldo-enable", true);
 #endif
@@ -1721,7 +1721,7 @@ int arizona_dev_init(struct arizona *arizona)
 	int ret, i;
 	char revision_char;
 	
-	printk("At %d In (%s)\n",__LINE__, __FUNCTION__);//yht
+	printk("At %d In (%s)\n",__LINE__, __FUNCTION__);
 
 	printk("%s, type=%d\n", __func__, arizona->type);
 	dev_set_drvdata(arizona->dev, arizona);
@@ -1735,9 +1735,9 @@ int arizona_dev_init(struct arizona *arizona)
 	else
 		{
 		arizona_of_get_core_pdata(arizona);//get data form dtsi
-		printk("At %d In (%s)\n",__LINE__, __FUNCTION__);//yht
+		printk("At %d In (%s)\n",__LINE__, __FUNCTION__);
 		}
-#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)		// xuke @ 20141031
+#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)
 	ret = arizona_pinctrl_init(arizona);
 	if (!ret && arizona->pdata.gpio_pinctrl)
 	{
@@ -1775,7 +1775,7 @@ int arizona_dev_init(struct arizona *arizona)
 //			printk("%s, i2s_mclk error\n", __func__);
 //			goto Err_i2s_mclk;
 //		}
-#if 0	// xuke @ 20150114	Remove these codes.
+#if 0
 		ret = clk_prepare_enable(arizona->pdata.i2s_mclk);
 		if (ret)
 		{
@@ -1943,7 +1943,7 @@ int arizona_dev_init(struct arizona *arizona)
 	}
 #endif
 
-#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)		// xuke @ 20141031
+#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)
 	printk("%s, ldo_enable=%d\n", __func__, arizona->pdata.ldo_enable);
 	if (arizona->pdata.ldo_enable) {
 		ret = gpio_request_one(arizona->pdata.ldo_enable,
@@ -2010,13 +2010,13 @@ int arizona_dev_init(struct arizona *arizona)
 	msleep(10);
 	/* Verify that this is a chip we know about */
 	ret = regmap_read(arizona->regmap, ARIZONA_SOFTWARE_RESET, &reg);
-	printk("At %d In (%s),the chip ID ret %d, reg=0x%x\n",__LINE__, __FUNCTION__,ret, reg);//yht
+	printk("At %d In (%s),the chip ID ret %d, reg=0x%x\n",__LINE__, __FUNCTION__,ret, reg);
 	
 #if  0 // 	these code is for test 
 	for( i=0 ; i<10; i++)
 		{		
 		ret = regmap_read(arizona->regmap, ARIZONA_SOFTWARE_RESET, &reg);	
-		pr_debug("At %d In (%s),the chip ID ret %d, reg=0x%x\n",__LINE__, __FUNCTION__,ret, reg);//yht
+		pr_debug("At %d In (%s),the chip ID ret %d, reg=0x%x\n",__LINE__, __FUNCTION__,ret, reg);
 		msleep(10);
 		}		
 #endif
@@ -2408,7 +2408,7 @@ int arizona_dev_init(struct arizona *arizona)
 				   ARIZONA_IN1L_CONTROL + (i * 8), mask, val);
 	}
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA)
-	arizona->pdata.out_mono[2] = 1;//and by Henry, this will be changed when update code
+	arizona->pdata.out_mono[2] = 1;
 	arizona->pdata.out_mono[3] = 1;
 #endif
 	for (i = 0; i < ARIZONA_MAX_OUTPUT; i++) {
@@ -2496,7 +2496,7 @@ err_reset:
 		gpio_set_value_cansleep(arizona->pdata.reset, 0);
 		gpio_free(arizona->pdata.reset);
 	}
-#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)		// xuke @ 20141031
+#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)
 	if (arizona->pdata.ena_ldo) {
 		printk("%s, ena_ldo set0\n", __func__);
 		gpio_set_value_cansleep(arizona->pdata.ena_ldo, 0);
@@ -2542,7 +2542,7 @@ int arizona_dev_exit(struct arizona *arizona)
 
 	regulator_disable(arizona->dcvdd);
 	regulator_put(arizona->dcvdd);
-#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)		// xuke @ 20141031
+#if defined(CONFIG_LCT_WM8998_GPIO_CTRL)
 	if (gpio_is_valid(arizona->pdata.ldo_enable))
 	{
 		printk("%s, ldo_enable1 set0\n", __func__);

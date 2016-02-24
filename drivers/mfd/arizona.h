@@ -25,7 +25,7 @@ extern const struct regmap_config wm5102_spi_regmap;
 extern const struct regmap_config florida_i2c_regmap;
 extern const struct regmap_config florida_spi_regmap;
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA)
-//yht start
+
 extern const struct regmap_config wm5110_i2c_regmap;
 extern const struct regmap_config wm5110_spi_regmap;
 extern const struct regmap_config wm8285_16bit_i2c_regmap;
@@ -35,7 +35,7 @@ extern const struct regmap_config wm8285_32bit_i2c_regmap;
 extern const struct regmap_config cs47l24_spi_regmap; 
 extern const struct regmap_irq_chip wm8285_irq; 
 extern const struct regmap_irq_chip cs47l24_irq;
-//yht end
+
 #endif
 
 extern const struct regmap_config wm8997_i2c_regmap;

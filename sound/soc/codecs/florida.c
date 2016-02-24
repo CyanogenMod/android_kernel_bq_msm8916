@@ -1958,7 +1958,7 @@ static struct snd_soc_dai_driver florida_dai[] = {
 	},
 };
 
-/* Fix the issue that FM and speaker would no sound when kernel suspended, yht add it according to xuke*/
+/* Fix the issue that FM and speaker would no sound when kernel suspended*/
 int msm_audrx_init_florida(struct snd_soc_pcm_runtime *rtd)
 {
 

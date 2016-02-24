@@ -842,7 +842,7 @@ static int msm_quat_mi2s_snd_hw_params(struct snd_pcm_substream *substream,
 	printk("%s, snd_soc_dai_set_fmt ret=%d\n", __func__, ret);
 	if (ret < 0)
 		return ret;
-#if 1 //yht change the clock to I2S Bclock, if using BCLK as MCLK, should change this
+#if 1 // change the clock to I2S Bclock, if using BCLK as MCLK, should change this
 	ret =snd_soc_dai_set_pll(codec_dai, FLORIDA_FLL1, ARIZONA_FLL_SRC_MCLK1,
 		DEFAULT_MCLK_RATE, fll_out); //MCLK as REF Clokc
 #else
@@ -2264,7 +2264,7 @@ static struct snd_soc_dai_link msm8x16_dai[] = {
 		.cpu_dai_name = "msm-dai-q6-mi2s.0",
 		.platform_name = "msm-pcm-routing",
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA)
-		.codec_name     = "florida-codec",	//"tombak_codec",//yht
+		.codec_name     = "florida-codec",	//"tombak_codec",
 		.codec_dai_name = "florida-aif1",
 #else
 		.codec_name     = "tombak_codec",
@@ -2296,7 +2296,7 @@ static struct snd_soc_dai_link msm8x16_dai[] = {
 		.cpu_dai_name = "msm-dai-q6-mi2s.2",
 		.platform_name = "msm-pcm-routing",
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA)
-		.codec_name     = "florida-codec",	//"tombak_codec",//yht
+		.codec_name     = "florida-codec",	//"tombak_codec",
 		.codec_dai_name = "florida-aif1",
 #else
 		.codec_name     = "tombak_codec",
@@ -2322,7 +2322,7 @@ static struct snd_soc_dai_link msm8x16_dai[] = {
 		.be_id = MSM_BACKEND_DAI_QUATERNARY_MI2S_RX,
 //++++>
 		.init = &msm_audrx_init_wm8998,
-//<++++		xuke @ 20150209	Fix the issue that FM would no sound when kernel suspended.
+//<++++	Fix the issue that FM would no sound when kernel suspended.
 		.be_hw_params_fixup = msm_be_hw_params_fixup,
 		.ops = &msm8x16_quat_mi2s_be_ops,
 		.ignore_pmdown_time = 1, /* dai link has playback support */
@@ -2353,7 +2353,7 @@ static struct snd_soc_dai_link msm8x16_dai[] = {
 		.codec_dai_name = "florida-aif1",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_QUATERNARY_MI2S_RX,
-		/* Fix the issue that FM and speaker would no sound when kernel suspended, yht add it according to xuke*/
+		/* Fix the issue that FM and speaker would no sound when kernel suspended*/
 		.init = &msm_audrx_init_florida,
 		.be_hw_params_fixup = msm_be_hw_params_fixup,
 		.ops = &msm8x16_quat_mi2s_be_ops,
@@ -2716,7 +2716,7 @@ static int msm8x16_setup_hs_jack(struct platform_device *pdev,
 	return 0;
 }
 
-#if defined(CONFIG_SPEAKER_EXT_PA)		// xuke @ 20141112	Support external PA for speaker.
+#if defined(CONFIG_SPEAKER_EXT_PA)		//Support external PA for speaker.
 static int msm8x16_setup_spk_ext_pa(struct platform_device *pdev, struct msm8916_asoc_mach_data *pdata)
 {
 	struct pinctrl *pinctrl;

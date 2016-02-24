@@ -135,7 +135,7 @@ static const struct arizona_micd_config micd_default_modes[] = {
 };
 
 static const struct arizona_micd_range micd_default_ranges[] = {
-#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)	// xuke @ 20150417
+#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
 	{ .max =  75,  .key = BTN_0 },
 	{ .max =  100, .key = BTN_1 },
 	{ .max =  260, .key = BTN_2 },
@@ -490,7 +490,7 @@ static void arizona_extcon_pulse_micbias(struct arizona_extcon_info *info)
 	int ret;
 
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA) || defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
-//yht
+
 #else
 	mutex_lock(&dapm->card->dapm_mutex);
 #endif
@@ -501,7 +501,7 @@ static void arizona_extcon_pulse_micbias(struct arizona_extcon_info *info)
 			 widget, ret);
 
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA) || defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
-//yht
+
 #else
 	mutex_unlock(&dapm->card->dapm_mutex);
 #endif
@@ -1619,7 +1619,7 @@ static irqreturn_t arizona_micdet(int irq, void *data)
 	mutex_lock(&info->lock);
 
 	if (!info->detecting)
-#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)	// xuke @ 20150417	FIXME! Directly modify this value from 0 to 150 to fix the issue that button pressed without debounce.
+#if defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
 		debounce = 80;
 #else
 		debounce = 0;

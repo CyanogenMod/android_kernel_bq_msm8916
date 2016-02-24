@@ -105,7 +105,7 @@ static void arizona_micsupp_check_cp(struct work_struct *work)
 
 	if (dapm) {
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA) || defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
-//yht
+
 #else
 		mutex_lock(&dapm->card->dapm_mutex);
 #endif
@@ -115,7 +115,7 @@ static void arizona_micsupp_check_cp(struct work_struct *work)
 		else
 			snd_soc_dapm_disable_pin(dapm, "MICSUPP");
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA) || defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
-//yht
+
 #else
 		mutex_unlock(&dapm->card->dapm_mutex);
 #endif

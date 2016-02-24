@@ -410,7 +410,7 @@ const char *arizona_mixer_texts[ARIZONA_NUM_MIXER_INPUTS] = {
 	"AIF2RX7",
 	"AIF2RX8",
 #endif
-	// yht end
+	
 	"AIF3RX1",
 	"AIF3RX2",
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA)
@@ -2725,9 +2725,9 @@ static const int arizona_48k_bclk_rates[] = {
 
 static const unsigned int arizona_48k_rates[] = {
 	12000,
-	22050,//yht
+	22050,
 	24000,
-	44100,//yht
+	44100,
 	48000,
 	96000,
 	192000,
@@ -3393,7 +3393,7 @@ static irqreturn_t arizona_fll_clock_ok(int irq, void *data)
 	return IRQ_HANDLED;
 }
 #endif
-// yht end
+
 
 static struct {
 	unsigned int min;
@@ -4115,7 +4115,7 @@ int arizona_init_fll(struct arizona *arizona, int id, int base, int lock_irq,
 	case ARIZONA_CLK_SRC_MCLK1:
 	case ARIZONA_CLK_SRC_MCLK2:
 #if defined(CONFIG_AUDIO_CODEC_FLORIDA) || defined(CONFIG_AUDIO_CODEC_WM8998_SWITCH)
-//		fll->ref_src = val & ARIZONA_CLK_32K_SRC_MASK;//yht, if using BCLK as MCLK, should add this
+//		fll->ref_src = val & ARIZONA_CLK_32K_SRC_MASK;//if using BCLK as MCLK, should add this
 #else
 		fll->ref_src = val & ARIZONA_CLK_32K_SRC_MASK;
 #endif
@@ -4350,7 +4350,7 @@ out:
 EXPORT_SYMBOL_GPL(arizona_eq_coeff_put);
 static int arizona_slim_audio_probe(struct slim_device *slim)
 {
-	pr_debug("At %d In (%s)\n",__LINE__, __FUNCTION__);//yht
+	pr_debug("At %d In (%s)\n",__LINE__, __FUNCTION__);
        dev_crit(&slim->dev, "Probed\n");
 
        slim_audio_dev = slim;
@@ -4375,12 +4375,12 @@ static struct slim_driver arizona_slim_audio = {
 
 int __init arizona_asoc_init(void)
 {
-	int ret=20;//yht add for test
-	pr_debug("At %d In (%s)\n",__LINE__, __FUNCTION__);//yht
+	int ret=20;// add for test
+	pr_debug("At %d In (%s)\n",__LINE__, __FUNCTION__);
 	
     //return slim_driver_register(&arizona_slim_audio);
     ret=slim_driver_register(&arizona_slim_audio);
-    pr_debug("At %d In (%s),ret=%d\n",__LINE__, __FUNCTION__,ret);//yht
+    pr_debug("At %d In (%s),ret=%d\n",__LINE__, __FUNCTION__,ret);
     return ret;
 }
 module_init(arizona_asoc_init);
