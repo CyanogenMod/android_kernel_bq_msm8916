@@ -1356,7 +1356,7 @@
 		};
 
 		ocp8110_pins {
-			/*rear flash and torch*/  //Immigrated by liyong2 20160127
+			/*rear flash and torch*/
 			qcom,pins = <&gp 49> ,<&gp 8>;
 			qcom,num-grp-pins = <2>;
 			qcom,pin-func = <0>;
@@ -1372,7 +1372,7 @@
 		};
 
 		sy7802_pins {
-			/*rear flash and torch*/  //added by liyong2 20160127
+			/*rear flash and torch*/
 			qcom,pins = <&gp 16>, <&gp 9>, <&gp 51>;
 			qcom,num-grp-pins = <3>;
 			qcom,pin-func = <0>;

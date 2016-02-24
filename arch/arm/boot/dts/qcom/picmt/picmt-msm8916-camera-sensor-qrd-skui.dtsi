@@ -162,7 +162,7 @@
 	eeprom1: qcom,eeprom@22 {
 		cell-index = <1>;
 		reg = <0x22>;
-		qcom,eeprom-name = "s5k5e2_olq5f20";
+		qcom,eeprom-name = "s5k5e2_olq5f24";
 		compatible = "qcom,eeprom";
 		qcom,slave-addr = <0x20>;
 		qcom,cci-master = <0>;

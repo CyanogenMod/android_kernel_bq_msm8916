@@ -22,12 +22,6 @@ DEFINE_MSM_MUTEX(msm_actuator_mutex);
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 #define MAX_QVALUE  4096
-// add for ak7345
-uint16_t inf_code = 0;
-uint16_t macro_code = 0;
-uint16_t inf_adj_otp = 0;
-uint16_t macro_adj_otp = 0;
-// end by
 
 static struct v4l2_file_operations msm_actuator_v4l2_subdev_fops;
 static int32_t msm_actuator_power_up(struct msm_actuator_ctrl_t *a_ctrl);
@@ -85,6 +79,7 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 	uint16_t value = 0;
 	uint32_t size = a_ctrl->reg_tbl_size, i = 0;
 	struct msm_camera_i2c_reg_array *i2c_tbl = a_ctrl->i2c_reg_tbl;
+
 	CDBG("Enter\n");
 	for (i = 0; i < size; i++) {
 		/* check that the index into i2c_tbl cannot grow larger that
@@ -358,7 +353,6 @@ static int32_t msm_actuator_move_focus(
 				,__func__, __LINE__);
 		return -EFAULT;
 	}
-/*add end*/
 
 	curr_lens_pos = a_ctrl->step_position_table[a_ctrl->curr_step_pos];
 	a_ctrl->i2c_tbl_index = 0;
