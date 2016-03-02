@@ -154,7 +154,7 @@
 			himax,irq-gpio = <&msm_gpio 13 0x2008>; //IRQF_TRIGGER_LOW
 			himax,display-coords = <0 720 0 1280>;
 			himax,panel-coords = <0 720 0 1280>;
-			himax,button-map= <158 102 139>;
+			himax,button-map= <158 172 139>;
 			himax,no-force-update;
 			himax,i2c-pull-up;
 			report_type = <1>;

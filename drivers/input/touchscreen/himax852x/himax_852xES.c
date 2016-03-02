@@ -543,7 +543,7 @@ static int himax_input_register(struct himax_ts_data *ts)
 	set_bit(EV_KEY, ts->input_dev->evbit);
 
 	set_bit(KEY_BACK, ts->input_dev->keybit);
-	set_bit(KEY_HOME, ts->input_dev->keybit);
+	set_bit(KEY_HOMEPAGE, ts->input_dev->keybit);
 	set_bit(KEY_MENU, ts->input_dev->keybit);
 	set_bit(KEY_SEARCH, ts->input_dev->keybit);
 #if defined(HX_SMART_WAKEUP)
@@ -1096,7 +1096,7 @@ static void himax_ts_button_func(int tp_key_index,struct himax_ts_data *ts)
 					input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y_position);
 				}
 			} else {
-				input_report_key(ts->input_dev, KEY_HOME, 1);
+				input_report_key(ts->input_dev, KEY_HOMEPAGE, 1);
 			}
 		} else if ( tp_key_index == 0x04) {
 			vk_press = 1;
@@ -1139,7 +1139,7 @@ static void himax_ts_button_func(int tp_key_index,struct himax_ts_data *ts)
 			input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, 0);
 		}
 		input_report_key(ts->input_dev, KEY_BACK, 0);
-		input_report_key(ts->input_dev, KEY_HOME, 0);
+		input_report_key(ts->input_dev, KEY_HOMEPAGE, 0);
 		input_report_key(ts->input_dev, KEY_APP_SWITCH, 0);
 		input_sync(ts->input_dev);
 	}
