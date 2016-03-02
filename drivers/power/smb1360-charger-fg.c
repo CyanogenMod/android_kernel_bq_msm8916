@@ -4915,7 +4915,7 @@ static int smb1360_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&chip->delayed_init_work,
 			smb1360_delayed_init_work_fn);
 	init_completion(&chip->fg_mem_access_granted);
-	smb1360_wakeup_src_init(chip);
+	
 
 	/* probe the device to check if its actually connected */
 	rc = smb1360_read(chip, CFG_BATT_CHG_REG, &reg);
@@ -4933,6 +4933,7 @@ static int smb1360_probe(struct i2c_client *client,
 		dev_err(&client->dev, "Unable to parse DT nodes\n");
 		return rc;
 	}
+	smb1360_wakeup_src_init(chip);
 
 	device_init_wakeup(chip->dev, 1);
 	i2c_set_clientdata(client, chip);
