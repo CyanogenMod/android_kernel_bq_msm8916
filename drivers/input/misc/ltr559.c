@@ -991,7 +991,7 @@ static ssize_t ltr559_ps_dynamic_caliberate(struct sensors_classdev *sensors_cde
 	   }
 //add end
 
-   if(noise < 200){
+   if(noise < 200){ 
 	   pdata->prox_threshold = noise+145;
 	   pdata->prox_hsyteresis_threshold = noise+45;
    }else if(noise < 500){
