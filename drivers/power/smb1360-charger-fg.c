@@ -2315,6 +2315,25 @@ static int usbin_uv_handler(struct smb1360_chip *chip, u8 rt_stat)
 
 	return 0;
 }
+static int usbin_ov_handler(struct smb1360_chip *chip, u8 rt_stat){ 
+	/*	 * rt_stat indicates if usb is overvolted. If so usb_present	
+	 * should be marked removed  */ bool usb_present = !rt_stat;	
+	int health; 
+	printk("chip->usb_present = %d usb_present = %d\n",chip->usb_present, usb_present);
+	if (chip->usb_present && !usb_present) {		
+		/* USB removed */		
+		chip->usb_present = usb_present;		
+		printk("setting usb psy type = %d\n",POWER_SUPPLY_TYPE_UNKNOWN); 
+		power_supply_set_supply_type(chip->usb_psy,POWER_SUPPLY_TYPE_UNKNOWN); 	
+		power_supply_set_present(chip->usb_psy, usb_present);	
+	}	
+	if (chip->usb_psy) {		
+		health = rt_stat ? POWER_SUPPLY_HEALTH_OVERVOLTAGE : POWER_SUPPLY_HEALTH_GOOD; 	  
+		printk("POWER_SUPPLY_HEALTH_OVERVOLTAGE = 5 POWER_SUPPLY_HEALTH_GOOD = 1 health=%d \n", health); 
+		power_supply_set_health_state(chip->usb_psy, health);	
+	}
+	return 0;
+}
 
 static int aicl_done_handler(struct smb1360_chip *chip, u8 rt_stat)
 {
@@ -2676,6 +2695,7 @@ static struct irq_handler_info handlers[] = {
 			},
 			{
 				.name		= "usbin_ov",
+                .smb_irq	= usbin_ov_handler,
 			},
 			{
 				.name		= "unused",
