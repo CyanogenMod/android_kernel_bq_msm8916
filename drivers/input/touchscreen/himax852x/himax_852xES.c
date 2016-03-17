@@ -16,7 +16,7 @@
 #include <linux/input/himax_852xES.h>
 #include <linux/input/himax_platform.h>
 #include <linux/proc_fs.h>
-//#include "../lct_tp_fm_info.h"
+#include "../lct_tp_fm_info.h"
 
 #define HIMAX_I2C_RETRY_TIMES 10
 #define SUPPORT_FINGER_DATA_CHECKSUM 0x0F

@@ -121,7 +121,7 @@
 #include "plug.h"
 //#endif
 
-//#include "../lct_tp_fm_info.h"
+#include "../lct_tp_fm_info.h"
 
 
 /* Configuration file */
