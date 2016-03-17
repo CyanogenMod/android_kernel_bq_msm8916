@@ -398,6 +398,7 @@ struct smb1360_chip {
 	bool				otg_fet_present;
 	bool				fet_gain_enabled;
 	int				otg_fet_enable_gpio;
+	int				cfg_current_limited;
 
 	/* status tracking */
 	int				voltage_now;
@@ -2002,6 +2003,10 @@ static void smb1360_external_power_changed(struct power_supply *psy)
 	else
 		current_limit = prop.intval / 1000;
 
+	if (chip->cfg_current_limited != -EINVAL) {
+		if (current_limit > chip->cfg_current_limited)
+			current_limit = chip->cfg_current_limited;
+	}
 	pr_debug("current_limit = %d\n", current_limit);
 
 	if (chip->usb_psy_ma != current_limit) {
@@ -4899,6 +4904,12 @@ static int smb_parse_dt(struct smb1360_chip *chip)
 		}
 	}
 
+	rc = of_property_read_u32(node, "qcom,cfg-current-limited",
+					&chip->cfg_current_limited);
+	if (rc < 0)
+		chip->cfg_current_limited = -EINVAL;
+	else
+		pr_debug("set cfg_current_limited = %d\n", chip->cfg_current_limited);
 	return 0;
 }
 
