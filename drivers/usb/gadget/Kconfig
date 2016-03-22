@@ -803,7 +803,7 @@ config USB_MASS_STORAGE
 
 	  Say "y" to link the driver statically, or "m" to build
 	  a dynamically linked module called "g_mass_storage".
-	  
+
 config USB_GADGET_TARGET
 	tristate "USB Gadget Target Fabric Module"
 	depends on TARGET_CORE
@@ -873,6 +873,9 @@ config USB_G_PRINTER
 
 config USB_G_ANDROID
 	boolean "Android Composite Gadget"
+	depends on SND
+	select SND_PCM
+	select SND_RAWMIDI
 	select USB_F_ACM
 	select USB_F_SERIAL
 	select USB_LIBCOMPOSITE
