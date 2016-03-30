@@ -56,6 +56,9 @@
 #define SYS_AUTHORITY		(S_IRUGO|S_IWUGO)
 #endif
 
+#define ALS_BQ_CALIBRATION      494
+#define ALS_BQ_CALIBRATION_DIV  1000
+
 struct ltr559_data {
 
 	struct i2c_client *client;
@@ -445,6 +448,10 @@ static int ltr559_als_read(struct i2c_client *client)
 		int luxdata;
 		int ch1_co, ch0_co, ratio;
 
+
+
+
+
 		alsval_ch1_lo = i2c_smbus_read_byte_data(client, LTR559_ALS_DATA_CH1_0);
 		alsval_ch1_hi = i2c_smbus_read_byte_data(client, LTR559_ALS_DATA_CH1_1);
 		if (alsval_ch1_lo < 0 || alsval_ch1_hi < 0)
@@ -477,6 +484,8 @@ static int ltr559_als_read(struct i2c_client *client)
 				ch1_co = 0;
 		}
 		luxdata = (alsval_ch0 * ch0_co - alsval_ch1 * ch1_co) / 10000;
+		luxdata =  (luxdata * ALS_BQ_CALIBRATION) / ALS_BQ_CALIBRATION_DIV ;	
+
 		return luxdata;//((luxdata * 185) / 460 + (luxdata / 100));
 }
 
