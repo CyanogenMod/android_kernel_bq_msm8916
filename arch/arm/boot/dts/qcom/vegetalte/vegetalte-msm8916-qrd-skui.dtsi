@@ -177,20 +177,21 @@
 		avago,ga-value = <768>;
 	};
 
-	bosch@18 { /* Accelerometer sensor */
-		compatible = "bosch,bma2x2";
-		reg = <0x18>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&bma2x2_int1_default &bma2x2_int2_default>;
-		interrupt-parent = <&msm_gpio>;
-		interrupts = <112 0x2002>;
-		vdd-supply = <&pm8916_l17>;
-		vio-supply = <&pm8916_l6>;
-		bosch,init-interval = <200>;
-		bosch,place = <2>;
-		bosch,gpio-int1 = <&msm_gpio 112 0x2002>;
-		bosch,gpio-int2 = <&msm_gpio 114 0x2002>;
-	};
+//	bosch@18 { /* Accelerometer sensor */
+//		compatible = "bosch,bma2x2";
+//		reg = <0x18>;
+//		pinctrl-names = "default";
+//		pinctrl-0 = <&bma2x2_int1_default &bma2x2_int2_default>;
+//		interrupt-parent = <&msm_gpio>;
+//		interrupts = <112 0x2002>;
+//		vdd-supply = <&pm8916_l17>;
+//		vio-supply = <&pm8916_l6>;
+//		bosch,init-interval = <200>;
+//		bosch,place = <2>;
+//		bosch,gpio-int1 = <&msm_gpio 112 0x2002>;
+//		bosch,gpio-int2 = <&msm_gpio 114 0x2002>;
+//	};
+
 
 	memsic@30 { /* Magnetic field sensor */
 		compatible = "memsic,mmc3416x";
@@ -215,6 +216,28 @@
 		invn,gpio-int = <&msm_gpio 115 0x2>;
 		invn,place = "Portrait Up Back Side";
 	};
+
+};
+&i2c_1{ /* blsp1 qup1 */
+
+		bosch@68 { /* gyroscope sensor */
+			compatible = "bosch,bmg160";
+			reg = <0x68>;
+			vdd-supply = <&pm8916_l17>;
+			vio-supply = <&pm8916_l6>;
+			bosch,init-interval = <200>;
+			bosch,place = <3>;
+		};
+
+		bosch@10 {/* magnetic sensor */
+			compatible = "bosch,bmm050";
+			reg = <0x10>;
+			vdd-supply = <&pm8916_l17>;
+			vio-supply = <&pm8916_l6>;
+			bosch,init-interval = <200>;
+			bosch,place = <6>;
+			bosch,auto-report;
+		};
 };
 
 &sdc2_cd_on {
