@@ -265,8 +265,6 @@ static int bmm_check_chip_id(struct i2c_client *client)
 
 	while (read_count++ < CHECK_CHIP_ID_TIME_MAX) {
 		bmm_i2c_read(client, BMM_REG_NAME(CHIP_ID), &chip_id, 1);
-		printk("liyuang++ read chip id result: %#x\n", chip_id);
-
 		if ((chip_id & 0xff) != SENSOR_CHIP_ID_BMM) {
 			mdelay(1);
 		} else {
@@ -1397,10 +1395,10 @@ static int bmm_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	/* check chip id */
 	err = bmm_check_chip_id(client);
 	if (!err) {
-		printk("liyuanhang++ Bosch Sensortec Device %s detected, i2c_addr: %#x\n",
+		printk("Bosch Sensortec Device %s detected, i2c_addr: %#x\n",
 				SENSOR_NAME, client->addr);
 	} else {
-		printk("liyuanhang++ Bosch Sensortec Device not found, chip id mismatch\n");
+		PERR("Bosch Sensortec Device not found, chip id mismatch\n");
 		err = -1;
 		goto exit_err_clean;
 	}
