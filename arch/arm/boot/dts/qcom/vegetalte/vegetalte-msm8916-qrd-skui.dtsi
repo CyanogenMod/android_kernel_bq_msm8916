@@ -25,7 +25,7 @@
 		pinctrl-0 = <&button_backlight_off>;
 
 		keypad-backlight {
-			gpios = <&msm_gpio 119 0>;
+			gpios = <&msm_gpio 34 0>;
 			label = "button-backlight";
 			linux,default-trigger = "none";
 		};
