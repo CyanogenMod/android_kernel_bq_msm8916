@@ -219,6 +219,24 @@
 		invn,gpio-int = <&msm_gpio 115 0x2>;
 		invn,place = "Portrait Up Back Side";
 	};
+	stk@48 {
+		compatible = "stk,stk3x1x";
+		reg = <0x48>;
+		interrupt-parent = <&msm_gpio>;
+		interrupts = <113 0x2>;
+		vdd-supply = <&pm8916_l17>;
+		vio-supply = <&pm8916_l6>;
+		stk,irq-gpio = <&msm_gpio 113 0x02>;
+		stk,transmittance = <340>;
+		stk,state-reg = <0x00>;
+		stk,psctrl-reg = <0x71>;
+		stk,alsctrl-reg = <0x38>;
+		stk,ledctrl-reg = <0xFF>;
+		stk,wait-reg = <0x07>;
+		stk,ps-thdh = <150>;
+		stk,ps-thdl = <100>;
+		stk,use-fir;
+	};
 
 };
 &i2c_1{ /* blsp1 qup1 */
@@ -240,6 +258,14 @@
 			bosch,init-interval = <200>;
 			bosch,place = <6>;
 			bosch,auto-report;
+		};
+		bosch@18 { /* accelerometer sensor */
+			compatible = "bosch,bma2x2";
+			reg = <0x18>;
+			vdd-supply = <&pm8916_l17>;
+			vio-supply = <&pm8916_l6>;
+			bosch,init-interval = <200>;
+			bosch,place = <3>;
 		};
 };
 
