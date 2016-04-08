@@ -119,7 +119,7 @@
 			qcom,fg-cc-to-cv-mv = <4397>;
 			qcom,thermistor-c1-coeff = <0x86C2>;
 
-			qcom,float-voltage-mv = <4420>;
+			qcom,float-voltage-mv = <4410>;
 			qcom,iterm-ma = <100>;
 			qcom,charging-timeout = <768>;
 			qcom,fg-reset-at-pon;
@@ -132,7 +132,7 @@
 			qcom,empty-soc-disabled;
 			regulator-name = "smb1360_otg_vreg";
 			qcom,awake-min-soc;
-			qcom,cfg-current-limited = <1200>;
+			qcom,cfg-current-limited = <1250>;
 
 			qcom,otp-hard-jeita-config;
 			qcom,otp-hot-bat-decidegc = <500>;
