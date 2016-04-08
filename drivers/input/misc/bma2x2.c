@@ -1641,7 +1641,6 @@ static int bma2x2_check_chip_id(struct i2c_client *client,
 			err = -ENODEV;
 			return err;
 		} else {
-		printk("fyl add %s :chipid = 0x%2x\n", __func__, chip_id);
 		for (i = 0; i < bma2x2_sensor_type_count; i++) {
 			if (sensor_type_map[i].chip_id == chip_id) {
 				data->sensor_type =
@@ -6627,9 +6626,7 @@ static int bma2x2_probe(struct i2c_client *client,
 		err = -ENOMEM;
 		goto exit;
 	}
-/*fyl add log start */
-	printk("fyl add %s \n", __func__);
-/*fyl add log end */
+
 	/* do soft reset */
 	mdelay(5);
 	if (bma2x2_soft_reset(client) < 0) {
