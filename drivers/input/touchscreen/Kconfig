@@ -946,6 +946,10 @@ config TOUCHSCREEN_FT5X06_PSENSOR
 
          If unsure, say N.
 
+config FTS_GESTURE
+	bool "FT5x06 doble tap"
+
+
 config TOUCHSCREEN_FT5X06_GESTURE
        tristate "FocalTech gesture feature support"
        depends on TOUCHSCREEN_FT5X06
