@@ -9,7 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#define DEBUG
 #define pr_fmt(fmt) "SMB:%s: " fmt, __func__
 
 #include <linux/i2c.h>
