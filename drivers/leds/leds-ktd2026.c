@@ -23,13 +23,13 @@
 #include <linux/of_gpio.h>
 #include <linux/of.h>
 
-#define debug 0
+#define debug 			0
 #define KTD_REG_RSTR		0x00
-#define KTD_REG_GCR			0x00
+#define KTD_REG_GCR		0x00
 #define KTD_REG_LEDE		0x04
 #define KTD_REG_LCFG		0x06
 //#define KTD_REG_PWM_LEVEL	0x34
-#define KTD_REG_R_F			0x05
+#define KTD_REG_R_F		0x05
 #define KTD_REG_HOLD		0x01
 #define KTD_REG_PWM1		0x02
 #define KTD_REG_PWM2		0x03
@@ -37,6 +37,7 @@
 #define MS_TO_LSB      (128)
 #define MIN_DC_VALUE	4
 #define MIN_RAMP_VALUE	96
+#define MAX_BRIGHT_CURR 24	// Max Current Brightness for channel set to 3mA
 #define RISE_TIME_MASK	0xF0
 #define FALL_TIME_MASK	0x0F
 
@@ -427,6 +428,9 @@ static int ktd20xx_set_led_blink(struct ktd20xx_led *led, enum led_colors color,
 
 	ramp_times = (rise_time << 4 & RISE_TIME_MASK) | (fall_time & FALL_TIME_MASK);
 
+	/* Limit maximum Current to MAX_BRIGHT_CURR */
+	brightness = (brightness*MAX_BRIGHT_CURR)/255;
+
 	if(debug)
  	{
 		printk(KERN_ERR "%s  led->cdev_ledr.brightness  %d  led->cdev_ledg.brightness  %d  led->cdev_ledb.brightness %d \n", 
@@ -439,7 +443,7 @@ static int ktd20xx_set_led_blink(struct ktd20xx_led *led, enum led_colors color,
 
 	ktd20xx_write_reg(led->client, KTD_REG_RSTR, 0x00);// mode set---IC work when both SCL and SDA goes high
 	ktd20xx_write_reg(led->client, KTD_REG_LCFG+color, brightness);
-	
+
 	ret |= ktd20xx_write_reg(led->client, KTD_REG_R_F,  ramp_times);
 	ret |= ktd20xx_write_reg(led->client, KTD_REG_HOLD, period);
 	ktd20xx_write_reg(led->client, KTD_REG_PWM1, duty_cycle);//reset internal counter
