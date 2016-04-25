@@ -102,7 +102,9 @@ struct msm_actuator_ctrl_t {
 	struct msm_actuator_vreg vreg_cfg;
 	struct park_lens_data_t park_lens;
 	uint32_t max_code_size;
+#ifndef CONFIG_VEGETALTE_COMMON
 	enum actuator_initial_position_type initial_position_type;
+#endif
 };
 
 #endif
