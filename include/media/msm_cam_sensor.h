@@ -412,7 +412,6 @@ enum msm_actuator_cfg_type_t {
 	CFG_ACTUATOR_POWERDOWN,
 	CFG_ACTUATOR_POWERUP,
 	CFG_ACTUATOR_INIT,
-	CFG_AK7345_ACTUATOR_SET_OTP_TUNE,
 };
 
 enum msm_ois_cfg_type_t {
@@ -465,8 +464,6 @@ struct msm_actuator_tuning_params_t {
 	uint16_t region_size;
 	uint32_t total_steps;
 	struct region_params_t *region_params;
-	enum actuator_initial_position_type initial_position_type; //0:normal bias entry  1:mid entry
-	int16_t start_code; //If there is af otp, it's infinity_dac, else it's 0.
 };
 
 struct park_lens_data_t {
@@ -535,14 +532,6 @@ struct msm_actuator_set_position_t {
 	uint16_t delay[MAX_NUMBER_OF_STEPS];
 };
 
-
-struct ak7345_actuator_otp_info_t {
-	uint16_t m_inf_code;
-	uint16_t m_macro_code;
-	uint16_t m_inf_adj_code;
-	uint16_t m_macro_adj_code;
-};
-
 struct msm_actuator_cfg_data {
 	int cfgtype;
 	uint8_t is_af_supported;
@@ -552,9 +541,6 @@ struct msm_actuator_cfg_data {
 		struct msm_actuator_get_info_t get_info;
 		struct msm_actuator_set_position_t setpos;
 		enum af_camera_name cam_name;
-
-		struct ak7345_actuator_otp_info_t ak7345_otp_info;
-
 	} cfg;
 };
 
@@ -659,8 +645,6 @@ struct msm_actuator_tuning_params_t32 {
 	uint16_t region_size;
 	uint32_t total_steps;
 	compat_uptr_t region_params;
-	enum actuator_initial_position_type initial_position_type; //0:normal bias entry  1:mid entry
-	int16_t start_code; //If there is af otp, it's infinity_dac, else it's 0.
 };
 
 struct msm_actuator_params_t32 {
