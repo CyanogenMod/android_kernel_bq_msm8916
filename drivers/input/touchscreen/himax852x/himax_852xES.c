@@ -2771,6 +2771,7 @@ static int fb_notifier_callback(struct notifier_block *self,
 		blank = evdata->data;
 		switch (*blank) {
 		case FB_BLANK_UNBLANK:
+		case FB_BLANK_NORMAL:
 			if (event == FB_EVENT_BLANK)
 				himax852xes_resume(&ts->client->dev);
 			break;
