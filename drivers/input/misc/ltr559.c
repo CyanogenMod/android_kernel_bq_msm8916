@@ -1046,8 +1046,20 @@ static int ltr559_ps_set_enable(struct sensors_classdev *sensors_cdev,
 
 	ret = ltr559_ps_enable(data->client, enable);
 	if(ret < 0){
-		pr_err("%s: enable(%d) failed!\n", __func__, enable);
-		return -EFAULT;
+		pr_err("%s: enable(%d) failed! Retry 1...\n", __func__, enable);
+		ret = ltr559_ps_enable(data->client, enable);
+		if(ret < 0){
+			pr_err("%s: enable(%d) failed! Retry 2...\n", __func__, enable);
+			ret = ltr559_ps_enable(data->client, enable);
+			if(ret < 0){
+				pr_err("%s: enable(%d) failed! Retry 3...\n", __func__, enable);
+				ret = ltr559_ps_enable(data->client, enable);
+				if (ret < 0){
+					pr_err("%s: enable(%d) failed! Retry 3 failed\n", __func__, enable);
+					return -EFAULT;
+				}
+			}
+		}
 	}
 
 #if defined(CONFIG_PICCOLO_COMMON)
@@ -1138,30 +1150,36 @@ static int ltr559_read_ps_value_for_double_tap(void)
 //	printk("%s prox_threshold=%d,prox_hsyteresis_threshold=%d,psdata=%d\n",
 //		__func__, double_tap_data->platform_data->prox_threshold,
 //		double_tap_data->platform_data->prox_hsyteresis_threshold, psdata);
+	printk(KERN_INFO "double tap read = %d", psdata);
 	if (psdata < 0) {
 		printk("%s read ps value fail\n", __func__);
 		return -EINVAL;
 	}
-	if(psdata >= double_tap_data->platform_data->prox_threshold)
-		return 1; //near
-	else//if (psdata <= double_tap_data->platform_data->prox_hsyteresis_threshold)
-		return 0; //far
+	if(psdata < double_tap_data->platform_data->prox_threshold)
+		return 0;
+	else
+		return 1;
 }
 
 int ltr559_get_ps_value_for_double_tap(void)
 {
 	int tp_double_tap = 1;
-
+	printk(KERN_INFO "double tap Reading ps value\n");
 	if (!double_tap_data)
 		return 0;
 
 	if (!double_tap_data->ps_open_state) {
-		ltr559_ps_enable(double_tap_data->client,1);
+		printk(KERN_INFO "double tap sensor was disabled, enable and wait\n");
+		ltr559_ps_set_enable(&double_tap_data->ps_cdev,1);
 		msleep(20);//wait for wakeup
 		tp_double_tap = ltr559_read_ps_value_for_double_tap();
-		ltr559_ps_enable(double_tap_data->client,0);
+		printk(KERN_INFO "double tap measure = %d\n", tp_double_tap);
+		ltr559_ps_set_enable(&double_tap_data->ps_cdev,0);
+		printk(KERN_INFO "double tap measure donde, disable\n");
 	} else {
+		printk(KERN_INFO "double tap sensor was enabled, measure\n");
 		tp_double_tap = ltr559_read_ps_value_for_double_tap();
+		printk(KERN_INFO "double tap measure = %d\n", tp_double_tap);
 	}
 //	printk("%s tp_double_tap=%d\n", __func__, tp_double_tap);
 	if(tp_double_tap == 1)
