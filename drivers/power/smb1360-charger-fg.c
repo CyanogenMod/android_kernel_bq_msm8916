@@ -261,6 +261,7 @@ enum {
 
 enum {
 	USER	= BIT(0),
+	BATT_OV = BIT(1),
 };
 
 enum {
@@ -425,6 +426,9 @@ struct smb1360_chip {
 	int				charging_disabled_status;
 	u32				connected_rid;
 	u32				profile_rid[BATTERY_PROFILE_MAX];
+	int				cold_soft_set_threshold;
+	int				hot_soft_set_threshold;
+	bool				batt_ov_update_threshold;
 
 	u32				peek_poke_address;
 	u32				fg_access_type;
@@ -2243,10 +2247,92 @@ static void smb1360_external_power_changed(struct power_supply *psy)
 		pr_err("could not set usb online, rc=%d\n", rc);
 }
 
+#define BATTERY_OV_BIT		BIT(6)
+#define SOFT_JEITA_HYSTERISIS	50
+static int check_battery_ov(struct smb1360_chip *chip)
+{
+	int rc = 0;
+	u8 reg = 0;
+
+	rc = smb1360_read(chip, IRQ_D_REG, &reg);
+	if (rc) {
+		pr_err("Unable to read IRQ_D_REG rc=%d\n", rc);
+		return rc;
+	}
+
+	pr_debug("batt_ov_update_threshold=%d batt-ov=%d batt_warm=%d batt_cool=%d batt_hot=%d batt_cold=%d\n",
+		chip->batt_ov_update_threshold, !!(reg & BATTERY_OV_BIT),
+		chip->batt_warm, chip->batt_cool, chip->batt_hot,
+		chip->batt_cold);
+
+	if (reg & BATTERY_OV_BIT) {
+		/* we have hit batt-ov, update the threshold */
+		if (chip->batt_warm) {
+			reg = TEMP_THRE_SET(chip->hot_soft_set_threshold
+						- SOFT_JEITA_HYSTERISIS);
+			rc = smb1360_write(chip, JEITA_SOFT_HOT_REG, reg);
+			if (rc)
+				pr_err("Unable to set hot soft hysterisis rc=%d\n",
+									rc);
+			else
+				pr_debug("Setting hot-soft threahold to %d\n",
+							reg);
+
+			chip->batt_ov_update_threshold = true;
+		} else if (chip->batt_cool) {
+			reg = TEMP_THRE_SET(chip->cold_soft_set_threshold
+						+ SOFT_JEITA_HYSTERISIS);
+			rc = smb1360_write(chip, JEITA_SOFT_COLD_REG, reg);
+			if (rc)
+				pr_err("Unable to set cold soft hysterisis rc=%d\n",
+									rc);
+			else
+				pr_debug("Setting hot-soft threahold to %d\n",
+									reg);
+
+			chip->batt_ov_update_threshold = true;
+		}
+	}
+
+	if (!chip->batt_warm && !chip->batt_cool &&
+			chip->batt_ov_update_threshold) {
+
+		/* recovered from jeita & clear batt-ov */
+		pr_debug("Clearing OV and resetting bacj the JEITA thresholds\n");
+
+		reg = TEMP_THRE_SET(chip->hot_soft_set_threshold);
+		rc = smb1360_write(chip, JEITA_SOFT_HOT_REG, reg);
+		if (rc)
+			pr_err("Unable to set cold soft hysterisis rc=%d\n",
+								rc);
+		reg = TEMP_THRE_SET(chip->cold_soft_set_threshold);
+		rc = smb1360_write(chip, JEITA_SOFT_COLD_REG, reg);
+		if (rc)
+			pr_err("Unable to set cold soft hysterisis rc=%d\n",
+								rc);
+		/* Clear OV - disable and enable charging */
+		rc = smb1360_charging_disable(chip, BATT_OV, true);
+		if (rc)
+			pr_err("Disable charging(BATT_OV) failed rc=%d\n", rc);
+		rc = smb1360_charging_disable(chip, BATT_OV, false);
+		if (rc)
+			pr_err("Enable charging(BATT_OV) failed rc=%d\n", rc);
+
+		chip->batt_ov_update_threshold = false;
+	}
+
+	return rc;
+}
+
 static int hot_hard_handler(struct smb1360_chip *chip, u8 rt_stat)
 {
+	int rc;
 	pr_debug("rt_stat = 0x%02x\n", rt_stat);
 	chip->batt_hot = !!rt_stat;
+
+	rc = check_battery_ov(chip);
+	if (rc)
+		pr_err("Unable to check batt-ov condition rc=%d\n", rc);
 
 	if (chip->parallel_charging) {
 		pr_debug("%s parallel-charging\n", chip->batt_hot ?
@@ -2265,8 +2351,13 @@ static int hot_hard_handler(struct smb1360_chip *chip, u8 rt_stat)
 
 static int cold_hard_handler(struct smb1360_chip *chip, u8 rt_stat)
 {
+	int rc;
 	pr_debug("rt_stat = 0x%02x\n", rt_stat);
 	chip->batt_cold = !!rt_stat;
+
+	rc = check_battery_ov(chip);
+	if (rc)
+		pr_err("Unable to check batt-ov condition rc=%d\n", rc);
 
 	if (chip->parallel_charging) {
 		pr_debug("%s parallel-charging\n", chip->batt_cold ?
@@ -2417,10 +2508,15 @@ end:
 
 static int hot_soft_handler(struct smb1360_chip *chip, u8 rt_stat)
 {
+	int rc;
 	chip->soft_hot_rt_stat = rt_stat;
 	pr_debug("rt_stat = 0x%02x\n", rt_stat);
 	if (!chip->config_hard_thresholds)
 		chip->batt_warm = !!rt_stat;
+
+	rc = check_battery_ov(chip);
+	if (rc)
+		pr_err("Unable to check batt-ov condition rc=%d\n", rc);
 
 	if (chip->workaround_flags & WRKRND_HARD_JEITA) {
 		cancel_delayed_work_sync(&chip->jeita_work);
@@ -2441,10 +2537,15 @@ static int hot_soft_handler(struct smb1360_chip *chip, u8 rt_stat)
 
 static int cold_soft_handler(struct smb1360_chip *chip, u8 rt_stat)
 {
+	int rc;
 	chip->soft_cold_rt_stat = rt_stat;
 	pr_debug("rt_stat = 0x%02x\n", rt_stat);
 	if (!chip->config_hard_thresholds)
 		chip->batt_cool = !!rt_stat;
+
+	rc = check_battery_ov(chip);
+	if (rc)
+		pr_err("Unable to check batt-ov condition rc=%d\n", rc);
 
 	if (chip->workaround_flags & WRKRND_HARD_JEITA) {
 		cancel_delayed_work_sync(&chip->jeita_work);
@@ -2557,6 +2658,20 @@ static int aicl_done_handler(struct smb1360_chip *chip, u8 rt_stat)
 		smb1360_stay_awake(&chip->smb1360_ws, WAKEUP_SRC_PARALLEL);
 		schedule_work(&chip->parallel_work);
 	}
+
+	return 0;
+}
+
+static int batt_ov_handler(struct smb1360_chip *chip, u8 rt_stat)
+{
+	bool batt_ov = !!rt_stat;
+	int rc;
+
+	pr_debug("Batt-OV=%d\n", batt_ov);
+
+	rc = check_battery_ov(chip);
+	if (rc)
+		pr_err("Unable to check batt-ov condition rc=%d\n", rc);
 
 	return 0;
 }
@@ -2895,6 +3010,7 @@ static struct irq_handler_info handlers[] = {
 			},
 			{
 				.name		= "battery_ov",
+				.smb_irq	= batt_ov_handler,
 			},
 		},
 	},
@@ -3807,6 +3923,9 @@ static int determine_initial_status(struct smb1360_chip *chip)
 	}
 	UPDATE_IRQ_STAT(IRQ_E_REG, reg);
 
+	/* check battery-ov condition */
+	check_battery_ov(chip);
+
 	chip->usb_present = (reg & IRQ_E_USBIN_UV_BIT) ? false : true;
 	power_supply_set_present(chip->usb_psy, chip->usb_present);
 
@@ -4177,6 +4296,7 @@ static int smb1360_jeita_init(struct smb1360_chip *chip)
 {
 	int rc = 0;
 	int temp;
+	u8 reg;
 
 	if (chip->config_hard_thresholds) {
 		if (chip->soft_jeita_supported) {
@@ -4230,6 +4350,25 @@ static int smb1360_jeita_init(struct smb1360_chip *chip)
 			}
 		}
 	}
+
+	/* store the configured hot/soft thresholds */
+	rc = smb1360_read(chip, JEITA_SOFT_COLD_REG, &reg);
+	if (rc) {
+		pr_err("Unable to read soft-cold threshold %d\n", rc);
+		return rc;
+	}
+	chip->cold_soft_set_threshold = (reg * 10) - 300;
+
+	rc = smb1360_read(chip, JEITA_SOFT_HOT_REG, &reg);
+	if (rc) {
+		pr_err("Unable to read soft-hard threshold %d\n", rc);
+		return rc;
+	}
+	chip->hot_soft_set_threshold = (reg * 10) - 300;
+
+	pr_debug("chip->cold_soft_set_threshold=%d chip->hot_soft_set_threshold=%d\n",
+			chip->cold_soft_set_threshold,
+			chip->hot_soft_set_threshold);
 
 	return rc;
 }
@@ -5516,6 +5655,19 @@ static void smb1360_shutdown(struct i2c_client *client)
 {
 	int rc;
 	struct smb1360_chip *chip = i2c_get_clientdata(client);
+	u8 reg;
+
+	/* restore back hot-soft and cold-soft thresholds */
+	reg = TEMP_THRE_SET(chip->hot_soft_set_threshold);
+	rc = smb1360_write(chip, JEITA_SOFT_HOT_REG, reg);
+	if (rc)
+		pr_err("Unable to set cold soft hysterisis rc=%d\n",
+							rc);
+	reg = TEMP_THRE_SET(chip->cold_soft_set_threshold);
+	rc = smb1360_write(chip, JEITA_SOFT_COLD_REG, reg);
+	if (rc)
+		pr_err("Unable to set cold soft hysterisis rc=%d\n",
+								rc);
 
 	rc = smb1360_otg_disable(chip);
 	if (rc)
